@@ -32,3 +32,19 @@ body { width: 420px; padding: 14px; font: 14px/1.45 system-ui,-apple-system,Sego
 .panel{ padding: 8px 0; }
 .list{ margin:0; padding:0; list-style:none; }
 .list li{ padding:6px 0; border-bottom:1px solid #e5e7eb; }
+
+/* Variant additions */
+.badge{ display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid transparent; }
+.badge.success{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
+.badge.warn{ background:#fffbeb; color:#92400e; border-color:#fde68a; }
+.badge.danger{ background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+.badge.info{ background:#eff6ff; color:#1e40af; border-color:#bfdbfe; }
+.chip{ display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; background:#f1f5f9; border:1px solid #e2e8f0; color:#334155; font-size:12px; }
+.header-strip{ border-radius:12px; padding:12px; color:#fff; display:flex; align-items:center; justify-content:space-between; }
+.header-strip.success{ background:#16a34a; }
+.header-strip.warn{ background:#f59e0b; }
+.header-strip.danger{ background:#dc2626; }
+.header-strip .verdict{ font-size:16px; font-weight:800; display:flex; align-items:center; gap:8px; }
+.cols{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.col{ background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:10px; }
+.col-title{ font-weight:700; margin-bottom:6px; }

@@ -1,0 +1,41 @@
+{
+  "../@crx/manifest": {
+    "file": "assets/crx-manifest.js-Dy5zILdS.js",
+    "name": "crx-manifest.js",
+    "src": "../@crx/manifest",
+    "isEntry": true
+  },
+  "src/background.js": {
+    "file": "assets/background.js-yoX1qSMN.js",
+    "name": "background.js",
+    "src": "src/background.js",
+    "isEntry": true
+  },
+  "src/content.js": {
+    "file": "assets/content.js-l0sNRNKZ.js",
+    "name": "content.js",
+    "src": "src/content.js",
+    "isEntry": true
+  },
+  "src/popup/index.html": {
+    "file": "assets/index.html-Cy5xBrNM.js",
+    "name": "index.html",
+    "src": "src/popup/index.html",
+    "isEntry": true,
+    "dynamicImports": [
+      "src/popup/variants/Traffic.jsx"
+    ],
+    "css": [
+      "assets/index-LJsld48D.css"
+    ]
+  },
+  "src/popup/variants/Traffic.jsx": {
+    "file": "assets/Traffic-Dcin1fXb.js",
+    "name": "Traffic",
+    "src": "src/popup/variants/Traffic.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/popup/index.html"
+    ]
+  }
+}

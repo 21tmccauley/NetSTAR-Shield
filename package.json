@@ -7,7 +7,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "dev:ext": "vite",
-    "build:ext": "vite build"
+    "build:ext": "vite build",
+    "build:tabs": "VITE_UI_VARIANT=tabs vite build",
+    "build:compact": "VITE_UI_VARIANT=compact vite build",
+    "build:traffic": "VITE_UI_VARIANT=traffic vite build",
+    "build:all": "npm run build:tabs && npm run build:compact && npm run build:traffic",
+    "dev:tabs": "VITE_UI_VARIANT=tabs vite",
+    "dev:compact": "VITE_UI_VARIANT=compact vite",
+    "dev:traffic": "VITE_UI_VARIANT=traffic vite"
   },
   "dependencies": {
     "react": "^18.3.1",
