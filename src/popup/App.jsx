@@ -68,10 +68,7 @@ export default function App() {
   return (
     <div>
       <div className="header">
-        <div>
-          <div className="title">🛡️ NetStarShield 🔥</div>
-          <div className="version">Security Extension v1.36.0</div>
-        </div>
+          <div className="title">🛡️ NetStarShield</div>
         <div className="toggle">
           <span style={{fontWeight:600, color: settings.enabled ? '#16a34a' : '#475569'}}>
             {settings.enabled ? 'On' : 'Off'}
