@@ -38,7 +38,8 @@ export default function Summary({ state }) {
   );
 }
 
-export function SecurityAnalysis( metrics ) {
+export function SecurityAnalysis({ metrics }) {
+  return (
   <div>
     <div className="section-title">Security Analysis</div>
     <ProgressBar
@@ -71,5 +72,7 @@ export function SecurityAnalysis( metrics ) {
       value={metrics?.pageContent || 0}
       tooltip="Malicious scripts, suspicious content, and potential security threats on the page."
     />
-  </div>;
+  </div>
+  )
 }
+
