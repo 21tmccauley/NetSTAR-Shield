@@ -7,7 +7,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "dev:ext": "vite",
-    "build:ext": "vite build"
+    "build:ext": "vite build",
+    "dev:mockups": "vite --config vite.mockups.config.js",
+    "build:mockups": "vite build --config vite.mockups.config.js",
+    "preview:mockups": "vite preview --config vite.mockups.config.js"
   },
   "dependencies": {
     "react": "^18.3.1",
