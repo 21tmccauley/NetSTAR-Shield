@@ -1,0 +1,30 @@
+{
+  "name": "netstar-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@radix-ui/react-progress": "1.1.1",
+    "@radix-ui/react-slot": "1.1.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.454.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.2.0",
+    "@tailwindcss/postcss": "^4.1.9",
+    "@vitejs/plugin-react": "^4.3.1",
+    "postcss": "^8.5",
+    "tailwindcss": "^4.1.9",
+    "vite": "^5.4.0"
+  }
+}

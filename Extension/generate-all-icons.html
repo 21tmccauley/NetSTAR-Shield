@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generate Dynamic Security Icons</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .icon-sets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      margin: 30px 0;
+    }
+    .icon-set {
+      background: #f8f9ff;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .icon-set.safe { background: #e8f5e9; }
+    .icon-set.warning { background: #fff8e1; }
+    .icon-set.danger { background: #ffebee; }
+    
+    .icon-preview {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    .icon-container {
+      text-align: center;
+    }
+    canvas {
+      border: 2px solid rgba(0,0,0,0.1);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      margin: 5px;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .download-all {
+      font-size: 16px;
+      padding: 16px 32px;
+      margin-top: 30px;
+    }
+    .instructions {
+      background: #f8f9ff;
+      padding: 24px;
+      border-radius: 12px;
+      margin: 20px 0;
+      border-left: 4px solid #667eea;
+    }
+    h1 { color: #333; }
+    h2 { 
+      color: #667eea;
+      margin-top: 30px;
+      margin-bottom: 10px;
+    }
+    h3 { margin-top: 0; }
+    code {
+      background: #e0e0e0;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'Monaco', monospace;
+      font-size: 13px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .status-badge.safe { background: #4caf50; color: white; }
+    .status-badge.warning { background: #ff9800; color: white; }
+    .status-badge.danger { background: #f44336; color: white; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛡️ Generate Dynamic Security Icons</h1>
+    <p style="color: #666;">Create all icon variants for your security extension</p>
+    
+    <div class="instructions">
+      <h3>📋 What This Creates:</h3>
+      <p>This tool generates <strong>9 PNG files</strong> (3 states × 3 sizes each):</p>
+      <ul>
+        <li>🟢 <strong>Safe</strong>: Green ShieldCheck (score ≥ 75)</li>
+        <li>🟡 <strong>Warning</strong>: Amber ShieldCheck (score 60-74)</li>
+        <li>🔴 <strong>Danger</strong>: Red ShieldX (score &lt; 60)</li>
+      </ul>
+      <p style="margin-top: 15px;">Each state comes in 3 sizes: 16×16, 48×48, and 128×128 pixels</p>
+    </div>
+
+    <h2>Preview:</h2>
+    <div class="icon-sets">
+      <div class="icon-set safe">
+        <div class="status-badge safe">✓ Safe</div>
+        <h3>ShieldCheck Green</h3>
+        <div class="icon-preview" id="safeIcons"></div>
+      </div>
+      
+      <div class="icon-set warning">
+        <div class="status-badge warning">⚠ Warning</div>
+        <h3>ShieldCheck Amber</h3>
+        <div class="icon-preview" id="warningIcons"></div>
+      </div>
+      
+      <div class="icon-set danger">
+        <div class="status-badge danger">✕ Danger</div>
+        <h3>ShieldX Red</h3>
+        <div class="icon-preview" id="dangerIcons"></div>
+      </div>
+    </div>
+
+    <div style="text-align: center;">
+      <button class="download-all" id="downloadAllBtn">⬇️ Download All 9 Icons</button>
+      <p style="color: #666; margin-top: 10px;">Files will be saved with names like: icon-safe-16.png, icon-warning-48.png, etc.</p>
+    </div>
+
+    <div class="instructions" style="margin-top: 30px;">
+      <h3>🚀 Next Steps:</h3>
+      <p><strong>1.</strong> Click the download button above</p>
+      <p><strong>2.</strong> Move the files to your project:</p>
+      <code style="display: block; margin: 10px 0; padding: 12px;">
+        mv ~/Downloads/icon-*.png /Users/tatemccauley/extension-proto-1/src/icons/
+      </code>
+      <p><strong>3.</strong> I'll update your background.js to dynamically switch icons based on security score!</p>
+    </div>
+  </div>
+
+  <script type="module">
+    // Icon SVGs from Lucide
+    const icons = {
+      shieldCheck: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+      `,
+      shieldX: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+          <path d="m14.5 9.5-5 5"/>
+          <path d="m9.5 9.5 5 5"/>
+        </svg>
+      `
+    };
+
+    const states = {
+      safe: {
+        icon: 'shieldCheck',
+        color: '#4caf50',
+        containerId: 'safeIcons'
+      },
+      warning: {
+        icon: 'shieldCheck',
+        color: '#ff9800',
+        containerId: 'warningIcons'
+      },
+      danger: {
+        icon: 'shieldX',
+        color: '#f44336',
+        containerId: 'dangerIcons'
+      }
+    };
+
+    const sizes = [16, 48, 128];
+    const allCanvases = {};
+    
+    function createIcon(state, color, iconSvg, size) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Fill background with state color
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, size, size);
+
+      // Convert SVG to image
+      const iconSize = size * 0.65;
+      const svg = iconSvg
+        .replace('width="24"', `width="${iconSize}"`)
+        .replace('height="24"', `height="${iconSize}"`)
+        .replace(/stroke="currentColor"/g, 'stroke="white"')
+        .replace('stroke-width="2"', `stroke-width="${size > 32 ? 2 : 1.5}"`);
+
+      const img = new Image();
+      const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      return new Promise((resolve) => {
+        img.onload = () => {
+          const x = (size - iconSize) / 2;
+          const y = (size - iconSize) / 2;
+          ctx.drawImage(img, x, y, iconSize, iconSize);
+          URL.revokeObjectURL(url);
+          resolve(canvas);
+        };
+        img.src = url;
+      });
+    }
+
+    function downloadCanvas(canvas, filename) {
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
+          setTimeout(resolve, 100);
+        });
+      });
+    }
+
+    async function generatePreviews() {
+      for (const [stateName, stateConfig] of Object.entries(states)) {
+        const container = document.getElementById(stateConfig.containerId);
+        allCanvases[stateName] = {};
+        
+        for (const size of sizes) {
+          const canvas = await createIcon(
+            stateName,
+            stateConfig.color,
+            icons[stateConfig.icon],
+            size
+          );
+          
+          allCanvases[stateName][size] = canvas;
+          
+          const div = document.createElement('div');
+          div.className = 'icon-container';
+          
+          const previewCanvas = document.createElement('canvas');
+          previewCanvas.width = size;
+          previewCanvas.height = size;
+          const previewCtx = previewCanvas.getContext('2d');
+          previewCtx.drawImage(canvas, 0, 0);
+          
+          const label = document.createElement('p');
+          label.textContent = `${size}px`;
+          label.style.fontSize = '11px';
+          label.style.color = '#666';
+          label.style.marginTop = '8px';
+          label.style.marginBottom = '0';
+          
+          div.appendChild(previewCanvas);
+          div.appendChild(label);
+          container.appendChild(div);
+        }
+      }
+    }
+
+    document.getElementById('downloadAllBtn').onclick = async function() {
+      this.disabled = true;
+      this.textContent = '⏳ Generating all icons...';
+      
+      let count = 0;
+      for (const [stateName, stateConfig] of Object.entries(states)) {
+        for (const size of sizes) {
+          const canvas = await createIcon(
+            stateName,
+            stateConfig.color,
+            icons[stateConfig.icon],
+            size
+          );
+          await downloadCanvas(canvas, `icon-${stateName}-${size}.png`);
+          count++;
+          this.textContent = `⏳ Downloaded ${count}/9...`;
+        }
+      }
+      
+      this.textContent = '✅ All 9 Icons Downloaded!';
+      
+      setTimeout(() => {
+        this.disabled = false;
+        this.textContent = '⬇️ Download All 9 Icons';
+      }, 3000);
+    };
+
+    generatePreviews();
+  </script>
+</body>
+</html>
+
