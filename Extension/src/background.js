@@ -1,42 +1,28 @@
 // Background service worker for NetSTAR extension
 
-// Constants for icon thresholds
-const ICON_THRESHOLDS = {
-  SAFE: 75,
-  WARNING: 60
-}
-
-const ICON_STATES = {
-  SAFE: 'safe',
-  WARNING: 'warning',
-  DANGER: 'danger'
-}
-
 // TESTING: Set a specific score here (null = random scores)
 // Examples: 95 (green), 70 (amber), 45 (red), null (random)
-const TEST_SCORE = 60;
+const TEST_SCORE = null;
 
 // Function to update icon based on security score
 function updateIcon(tabId, safetyScore) {
-  let iconState = ICON_STATES.SAFE; // default
+  let iconState = 'safe'; // default
   
-  if (safetyScore >= ICON_THRESHOLDS.SAFE) {
-    iconState = ICON_STATES.SAFE;      // Green ShieldCheck
-  } else if (safetyScore >= ICON_THRESHOLDS.WARNING) {
-    iconState = ICON_STATES.WARNING;   // Amber ShieldCheck
+  if (safetyScore >= 75) {
+    iconState = 'safe';      // Green ShieldCheck
+  } else if (safetyScore >= 60) {
+    iconState = 'warning';   // Amber ShieldCheck
   } else {
-    iconState = ICON_STATES.DANGER;    // Red ShieldX
+    iconState = 'danger';    // Red ShieldX
   }
   
   // Update the extension icon for this tab
-  const iconPath = (size) => `src/icons/icon-${iconState}-${size}.png`
-  
   chrome.action.setIcon({
     tabId: tabId,
     path: {
-      16: iconPath(16),
-      48: iconPath(48),
-      128: iconPath(128)
+      16: `src/icons/icon-${iconState}-16.png`,
+      48: `src/icons/icon-${iconState}-48.png`,
+      128: `src/icons/icon-${iconState}-128.png`
     }
   });
   
@@ -48,28 +34,59 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log('NetSTAR extension installed');
   
   // Set default icon to safe state
-  const defaultIconPath = (size) => `src/icons/icon-${ICON_STATES.SAFE}-${size}.png`
   chrome.action.setIcon({
     path: {
-      16: defaultIconPath(16),
-      48: defaultIconPath(48),
-      128: defaultIconPath(128)
+      16: 'src/icons/icon-safe-16.png',
+      48: 'src/icons/icon-safe-48.png',
+      128: 'src/icons/icon-safe-128.png'
     }
   });
   
-  // Initialize storage with default values
+  // Initialize empty storage
   chrome.storage.local.set({
-    recentScans: [
-      { url: "github.com", safe: true, timestamp: Date.now() },
-      { url: "google.com", safe: true, timestamp: Date.now() },
-      { url: "amazon.com", safe: true, timestamp: Date.now() }
-    ],
+    recentScans: [],
+      //{ url: "github.com", safe: true, timestamp: Date.now() },
+      //{ url: "google.com", safe: true, timestamp: Date.now() },
+      //{ url: "amazon.com", safe: true, timestamp: Date.now() }
     settings: {
       autoScan: true,
       notifications: true
     }
   });
 });
+
+// Updating recent scans storage
+function updateRecentScans(url, safetyScore) {
+  let safeStatus = 'safe';
+  if (safetyScore >= 75) {
+    safeStatus = 'safe';
+  } else if (safetyScore >= 60) {
+    safeStatus = 'warning';
+  } else {
+    safeStatus = 'danger';
+  }
+
+  chrome.storage.local.get('recentScans', (data) => {
+    let recent = data.recentScans || [];
+
+    recent = recent.filter(entry => entry.url !== url);
+
+    const newEntry = {
+      url: url,
+      safe: safeStatus,
+      timestamp: Date.now()
+    };
+    recent.unshift(newEntry);
+
+    if (recent.length > 3) {
+      recent = recent.slice(0, 3);
+    }
+
+    chrome.storage.local.set({recentScans: recent});
+
+    console.log('Updated recent scans');
+  });
+}
 
 // Listen for tab updates to auto-scan current page
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -87,6 +104,10 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     chrome.storage.local.set({
       [`scan_${tabId}`]: result
     });
+
+    // Update recently scanned
+    updateRecentScans(tab.url, result.safetyScore);
+
   }
 });
 
@@ -105,6 +126,10 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
       chrome.storage.local.set({
         [`scan_${activeInfo.tabId}`]: scanResult
       });
+
+      // Update recently scanned
+      updateRecentScans(tab.url, scanResult.safetyScore);
+
     }
   }
 });
@@ -123,7 +148,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Store the result
         chrome.storage.local.set({
           [`scan_${tabs[0].id}`]: result
-        });
+        });      
+
+        // Update the recently scanned
+        updateRecentScans(request.url, result.safetyScore);
+
       }
     });
     
