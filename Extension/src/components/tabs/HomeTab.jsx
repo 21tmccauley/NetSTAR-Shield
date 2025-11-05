@@ -2,15 +2,16 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
-  Shield,
   Lock,
-  Globe,
-  Key,
-  Server,
-  FileText,
+  GlobeLock,
+  KeyRound,
+  Network,
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  ScrollText,
+  FileUser,
+  NotebookText
 } from "lucide-react"
 import { getStatusFromScore, getStatusMessage } from "@/lib/securityUtils"
 import { getColorClasses } from "@/lib/themeUtils"
@@ -18,13 +19,13 @@ import { DEFAULT_INDICATOR_DATA } from "@/lib/constants"
 
 // Icon mapping for indicators
 const INDICATOR_ICONS = {
-  cert: Shield,
+  cert: ScrollText,
   connection: Lock,
-  domain: Globe,
-  credentials: Key,
-  ip: Server,
-  dns: FileText,
-  whois: FileText,
+  domain: GlobeLock,
+  credentials: KeyRound,
+  ip: Network,
+  dns: NotebookText,
+  whois: FileUser,
 }
 
 export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
