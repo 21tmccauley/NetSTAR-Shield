@@ -1,28 +1,41 @@
 // Background service worker for NetSTAR extension
 
+const ICON_THRESHOLDS = {
+  SAFE: 75,
+  WARNING: 60
+}
+
+const ICON_STATES = {
+  SAFE: 'safe',
+  WARNING: 'warning',
+  DANGER: 'danger'
+}
+
 // TESTING: Set a specific score here (null = random scores)
 // Examples: 95 (green), 70 (amber), 45 (red), null (random)
 const TEST_SCORE = null;
 
 // Function to update icon based on security score
 function updateIcon(tabId, safetyScore) {
-  let iconState = 'safe'; // default
+  let iconState = ICON_STATES.SAFE; // default
   
-  if (safetyScore >= 75) {
-    iconState = 'safe';      // Green ShieldCheck
-  } else if (safetyScore >= 60) {
-    iconState = 'warning';   // Amber ShieldCheck
+  if (safetyScore >= ICON_THRESHOLDS.SAFE) {
+    iconState = ICON_STATES.SAFE;      // Green ShieldCheck
+  } else if (safetyScore >= ICON_THRESHOLDS.WARNING) {
+    iconState = ICON_STATES.WARNING;   // Amber ShieldCheck
   } else {
-    iconState = 'danger';    // Red ShieldX
+    iconState = ICON_STATES.DANGER;    // Red ShieldX
   }
   
   // Update the extension icon for this tab
+  const iconPath = (size) => `src/icons/icon-${iconState}-${size}.png`
+
   chrome.action.setIcon({
     tabId: tabId,
     path: {
-      16: `src/icons/icon-${iconState}-16.png`,
-      48: `src/icons/icon-${iconState}-48.png`,
-      128: `src/icons/icon-${iconState}-128.png`
+      16: iconPath(16),
+      48: iconPath(48),
+      128: iconPath(128)
     }
   });
   
@@ -34,11 +47,12 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log('NetSTAR extension installed');
   
   // Set default icon to safe state
+  const defaultIconPath = (size) => `src/icons/icon-${ICON_STATES.SAFE}-${size}.png`
   chrome.action.setIcon({
     path: {
-      16: 'src/icons/icon-safe-16.png',
-      48: 'src/icons/icon-safe-48.png',
-      128: 'src/icons/icon-safe-128.png'
+      16: defaultIconPath(16),
+      48: defaultIconPath(48),
+      128: defaultIconPath(128)
     }
   });
   
@@ -91,6 +105,12 @@ function updateRecentScans(url, safetyScore) {
 // Listen for tab updates to auto-scan current page
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
+    // Only scan if HTTP or HTTPS page
+    if (!/^https?:\/\//i.test(tab.url)){
+      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
+      return;
+    }
+    
     // Auto-scan the page and update icon
     console.log('Tab updated:', tab.url);
     
@@ -115,10 +135,20 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const tab = await chrome.tabs.get(activeInfo.tabId);
   if (tab.url) {
+    // Only scan if HTTP or HTTPS
+    if (!/^https?:\/\//i.test(tab.url)) {
+      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
+      return;
+    }
+
     // Check if we have a cached scan for this tab
     const result = await chrome.storage.local.get(`scan_${activeInfo.tabId}`);
     if (result[`scan_${activeInfo.tabId}`]) {
-      updateIcon(activeInfo.tabId, result[`scan_${activeInfo.tabId}`].safetyScore);
+      const safetyScore = result[`scan_${activeInfo.tabId}`].safetyScore;
+      updateIcon(activeInfo.tabId, safetyScore);
+
+      // Update recently scanned
+      updateRecentScans(tab.url, safetyScore);
     } else {
       // Perform new scan
       const scanResult = performSecurityScan(tab.url);
@@ -127,9 +157,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
         [`scan_${activeInfo.tabId}`]: scanResult
       });
 
-      // Update recently scanned
       updateRecentScans(tab.url, scanResult.safetyScore);
-
     }
   }
 });
@@ -137,6 +165,12 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 // Message handler for communication with popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'scanUrl') {
+    // Make sure manually entered websites have a TLD
+    if (!/\.[a-z]{2,}$/i.test(request.url)) {
+      console.log("Invalid URL entered:", request.url);
+      return;
+    }
+
     // Simulate security scan
     const result = performSecurityScan(request.url);
     
@@ -154,9 +188,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         updateRecentScans(request.url, result.safetyScore);
 
       }
+      sendResponse(result);
     });
     
-    sendResponse(result);
+    return true;
   }
   
   if (request.action === 'getCurrentTab') {

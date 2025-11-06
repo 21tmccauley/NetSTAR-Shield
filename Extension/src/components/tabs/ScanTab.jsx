@@ -27,12 +27,23 @@ export function ScanTab({ mode, onScanComplete }) {
     if (!scanUrl) return;
 
     setIsScanning(true)
-    setTimeout(() => {
-      setIsScanning(false)
-      if (onScanComplete) {
-        onScanComplete(scanUrl)
+
+    chrome.runtime.sendMessage(
+      { action: "scanUrl", url:scanUrl },
+      (result) => {
+        setIsScanning(false);
+
+        if (onScanComplete) {
+          onScanComplete(scanUrl);
+        }
       }
-    }, 2000)
+    );
+    //setTimeout(() => {
+      //setIsScanning(false)
+      //if (onScanComplete) {
+        //onScanComplete(scanUrl)
+      //}
+    //}, 2000)
   };
 
   return (
@@ -121,7 +132,7 @@ export function ScanTab({ mode, onScanComplete }) {
     </p>
   ) : (
     <div className="space-y-2">
-      {recentScans.map((site) => (
+      {recentScans.reverse().map((site) => (
         <button
           key={site.url}
           className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.02] ${
@@ -136,7 +147,7 @@ export function ScanTab({ mode, onScanComplete }) {
               mode === "dark" ? "text-white" : "text-slate-900"
             }`}
           >
-            {site.url.match(/^(?:https?:\/\/)?([^\/]+?\.(?:com|edu|org|net))/)?.[1] || site.url}
+            {site.url.match(/^(?:https?:\/\/)?([^\/]+)/)?.[1] || site.url}
           </span>
           <Badge
             className={`text-xs font-medium px-2 py-1 rounded-full ${
