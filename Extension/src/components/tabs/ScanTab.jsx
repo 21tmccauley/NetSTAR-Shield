@@ -24,8 +24,7 @@ export function ScanTab({ mode, onScanComplete }) {
   }, []);
   
   const handleScan = () => {
-    if (!scanUrl) return;
-
+    if (!scanUrl || isScanning) return
     setIsScanning(true)
 
     chrome.runtime.sendMessage(
@@ -45,6 +44,12 @@ export function ScanTab({ mode, onScanComplete }) {
       //}
     //}, 2000)
   };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleScan()
+    }
+  }
 
   return (
     <div className="p-6">
@@ -72,6 +77,7 @@ export function ScanTab({ mode, onScanComplete }) {
             placeholder="https://example.com"
             value={scanUrl}
             onChange={(e) => setScanUrl(e.target.value)}
+            onKeyDown={handleKeyDown}
             className={`rounded-xl ${mode === "dark" ? "bg-slate-800 border-slate-700 text-white" : "border-brand-200 text-slate-900"}`}
           />
           <p className={`text-xs mt-2 ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>

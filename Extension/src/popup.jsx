@@ -7,7 +7,7 @@ import { AlertsTab } from "@/components/tabs/AlertsTab"
 import { SettingsTab } from "@/components/tabs/SettingsTab"
 import { Tour } from "@/components/Tour"
 import { Button } from "@/components/ui/button"
-import { Home, Search, Shield, Bell, Settings } from "lucide-react"
+import { Home, Search, Shield, Bell, Settings, MessageCircleQuestionMark } from "lucide-react"
 import { ThemeToggleIcon } from "@/components/ThemeToggleIcon"
 import "@/index.css"
 
@@ -105,6 +105,15 @@ function Popup() {
                 className="rounded-full h-8 w-8"
               >
                 <ThemeToggleIcon mode={mode} />
+              </Button>
+              <Button
+                id="message-circle-question-mark"
+                variant="ghost"
+                size="icon"
+                onClick={handleStartTour}
+                className="rounded-full h-8 w-8"
+                >
+                  <MessageCircleQuestionMark mode={mode} />
               </Button>
               <Button
                 id="settings-button"
