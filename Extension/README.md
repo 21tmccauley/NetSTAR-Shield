@@ -74,7 +74,7 @@ A friendly and intuitive browser extension that helps users stay safe online by 
 1. Clone and Install
    ```bash
    git clone https://github.com/YOUR_USERNAME/netstar-shield-prototype-1.git
-   cd netstar-shield-prototype-1
+   cd netstar-shield-prototype-1/Extension
    npm install
    ```
 
