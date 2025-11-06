@@ -1,6 +1,5 @@
 // Background service worker for NetSTAR extension
 
-// Constants for icon thresholds
 const ICON_THRESHOLDS = {
   SAFE: 75,
   WARNING: 60
@@ -14,7 +13,7 @@ const ICON_STATES = {
 
 // TESTING: Set a specific score here (null = random scores)
 // Examples: 95 (green), 70 (amber), 45 (red), null (random)
-const TEST_SCORE = 60;
+const TEST_SCORE = null;
 
 // Function to update icon based on security score
 function updateIcon(tabId, safetyScore) {
@@ -30,7 +29,7 @@ function updateIcon(tabId, safetyScore) {
   
   // Update the extension icon for this tab
   const iconPath = (size) => `src/icons/icon-${iconState}-${size}.png`
-  
+
   chrome.action.setIcon({
     tabId: tabId,
     path: {
@@ -57,13 +56,12 @@ chrome.runtime.onInstalled.addListener(() => {
     }
   });
   
-  // Initialize storage with default values
+  // Initialize empty storage
   chrome.storage.local.set({
-    recentScans: [
-      { url: "github.com", safe: true, timestamp: Date.now() },
-      { url: "google.com", safe: true, timestamp: Date.now() },
-      { url: "amazon.com", safe: true, timestamp: Date.now() }
-    ],
+    recentScans: [],
+      //{ url: "github.com", safe: true, timestamp: Date.now() },
+      //{ url: "google.com", safe: true, timestamp: Date.now() },
+      //{ url: "amazon.com", safe: true, timestamp: Date.now() }
     settings: {
       autoScan: true,
       notifications: true
@@ -71,9 +69,48 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+// Updating recent scans storage
+function updateRecentScans(url, safetyScore) {
+  let safeStatus = 'safe';
+  if (safetyScore >= 75) {
+    safeStatus = 'safe';
+  } else if (safetyScore >= 60) {
+    safeStatus = 'warning';
+  } else {
+    safeStatus = 'danger';
+  }
+
+  chrome.storage.local.get('recentScans', (data) => {
+    let recent = data.recentScans || [];
+
+    recent = recent.filter(entry => entry.url !== url);
+
+    const newEntry = {
+      url: url,
+      safe: safeStatus,
+      timestamp: Date.now()
+    };
+    recent.unshift(newEntry);
+
+    if (recent.length > 3) {
+      recent = recent.slice(0, 3);
+    }
+
+    chrome.storage.local.set({recentScans: recent});
+
+    console.log('Updated recent scans');
+  });
+}
+
 // Listen for tab updates to auto-scan current page
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
+    // Only scan if HTTP or HTTPS page
+    if (!/^https?:\/\//i.test(tab.url)){
+      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
+      return;
+    }
+    
     // Auto-scan the page and update icon
     console.log('Tab updated:', tab.url);
     
@@ -87,6 +124,10 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     chrome.storage.local.set({
       [`scan_${tabId}`]: result
     });
+
+    // Update recently scanned
+    updateRecentScans(tab.url, result.safetyScore);
+
   }
 });
 
@@ -94,10 +135,20 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const tab = await chrome.tabs.get(activeInfo.tabId);
   if (tab.url) {
+    // Only scan if HTTP or HTTPS
+    if (!/^https?:\/\//i.test(tab.url)) {
+      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
+      return;
+    }
+
     // Check if we have a cached scan for this tab
     const result = await chrome.storage.local.get(`scan_${activeInfo.tabId}`);
     if (result[`scan_${activeInfo.tabId}`]) {
-      updateIcon(activeInfo.tabId, result[`scan_${activeInfo.tabId}`].safetyScore);
+      const safetyScore = result[`scan_${activeInfo.tabId}`].safetyScore;
+      updateIcon(activeInfo.tabId, safetyScore);
+
+      // Update recently scanned
+      updateRecentScans(tab.url, safetyScore);
     } else {
       // Perform new scan
       const scanResult = performSecurityScan(tab.url);
@@ -105,6 +156,8 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
       chrome.storage.local.set({
         [`scan_${activeInfo.tabId}`]: scanResult
       });
+
+      updateRecentScans(tab.url, scanResult.safetyScore);
     }
   }
 });
@@ -112,6 +165,12 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 // Message handler for communication with popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'scanUrl') {
+    // Make sure manually entered websites have a TLD
+    if (!/\.[a-z]{2,}$/i.test(request.url)) {
+      console.log("Invalid URL entered:", request.url);
+      return;
+    }
+
     // Simulate security scan
     const result = performSecurityScan(request.url);
     
@@ -123,11 +182,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Store the result
         chrome.storage.local.set({
           [`scan_${tabs[0].id}`]: result
-        });
+        });      
+
+        // Update the recently scanned
+        updateRecentScans(request.url, result.safetyScore);
+
       }
+      sendResponse(result);
     });
     
-    sendResponse(result);
+    return true;
   }
   
   if (request.action === 'getCurrentTab') {
