@@ -168,7 +168,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Make sure manually entered websites have a TLD
     if (!/\.[a-z]{2,}$/i.test(request.url)) {
       console.log("Invalid URL entered:", request.url);
-      return;
+      sendResponse({ error: true, message: "Invalid URL. Please enter a valid website address with a top-level domain (e.g., .com, .org, .net)" });
+      return true;
     }
 
     // Simulate security scan
