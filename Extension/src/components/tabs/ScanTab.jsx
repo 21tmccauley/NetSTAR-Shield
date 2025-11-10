@@ -1,22 +1,54 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Search, Shield, Sparkles } from "lucide-react"
-import { DEFAULT_RECENT_SCANS } from "@/lib/constants"
 
 export function ScanTab({ mode, onScanComplete }) {
   const [scanUrl, setScanUrl] = useState("")
   const [isScanning, setIsScanning] = useState(false)
+  const [recentScans, setRecentScans] = useState([]);
 
-  const handleScan = () => {
-    setIsScanning(true)
-    setTimeout(() => {
-      setIsScanning(false)
-      if (onScanComplete) {
-        onScanComplete(scanUrl)
+  useEffect(() => {
+    chrome.storage.local.get("recentScans", (data) => {
+      if (data.recentScans) {
+        setRecentScans(data.recentScans);
       }
-    }, 2000)
+    });
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes.recentScans) {
+        setRecentScans(changes.recentScans.newValue || []);
+      }
+    });
+  }, []);
+  
+  const handleScan = () => {
+    if (!scanUrl || isScanning) return
+    setIsScanning(true)
+
+    chrome.runtime.sendMessage(
+      { action: "scanUrl", url:scanUrl },
+      (result) => {
+        setIsScanning(false);
+
+        if (onScanComplete) {
+          onScanComplete(scanUrl);
+        }
+      }
+    );
+    //setTimeout(() => {
+      //setIsScanning(false)
+      //if (onScanComplete) {
+        //onScanComplete(scanUrl)
+      //}
+    //}, 2000)
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleScan()
+    }
   }
 
   return (
@@ -45,6 +77,7 @@ export function ScanTab({ mode, onScanComplete }) {
             placeholder="https://example.com"
             value={scanUrl}
             onChange={(e) => setScanUrl(e.target.value)}
+            onKeyDown={handleKeyDown}
             className={`rounded-xl ${mode === "dark" ? "bg-slate-800 border-slate-700 text-white" : "border-brand-200 text-slate-900"}`}
           />
           <p className={`text-xs mt-2 ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>
@@ -85,32 +118,66 @@ export function ScanTab({ mode, onScanComplete }) {
           </div>
         )}
 
-        {/* Friendly recent scans */}
-        <div className="mt-6">
-          <h3 className={`text-sm font-semibold mb-3 ${mode === "dark" ? "text-white" : "text-brand-800"}`}>
-            Recently Checked
-          </h3>
-          <div className="space-y-2">
-            {DEFAULT_RECENT_SCANS.map((site) => (
-              <button
-                key={site.url}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.02] ${
-                  mode === "dark" ? "bg-slate-800/50 hover:bg-slate-800" : "bg-white hover:shadow-md"
-                }`}
-                onClick={() => setScanUrl(`https://${site.url}`)}
-              >
-                <div className="text-xl">{site.safe ? "✓" : "⚠️"}</div>
-                <span className={`text-sm flex-1 text-left ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
-                  {site.url}
-                </span>
-                <Badge variant={site.safe ? "default" : "destructive"} className="text-xs">
-                  {site.safe ? "Safe" : "Caution"}
-                </Badge>
-              </button>
-            ))}
-          </div>
-        </div>
+{/* Recently checked sites dynamically from storage */}
+<div className="mt-6">
+  <h3
+    className={`text-sm font-semibold mb-3 ${
+      mode === "dark" ? "text-white" : "text-brand-800"
+    }`}
+  >
+    Recently Checked
+  </h3>
+
+  {recentScans.length === 0 ? (
+    <p
+      className={`text-sm italic ${
+        mode === "dark" ? "text-slate-400" : "text-slate-600"
+      }`}
+    >
+      No sites checked yet
+    </p>
+  ) : (
+    <div className="space-y-2">
+      {recentScans.reverse().map((site) => (
+        <button
+          key={site.url}
+          className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.02] ${
+            mode === "dark"
+              ? "bg-slate-800/50 hover:bg-slate-800"
+              : "bg-white hover:shadow-md"
+          }`}
+          onClick={() => setScanUrl(site.url.startsWith("http") ? site.url : `https://${site.url}`)}
+        >
+          <span
+            className={`text-sm flex-1 text-left ${
+              mode === "dark" ? "text-white" : "text-slate-900"
+            }`}
+          >
+            {site.url.match(/^(?:https?:\/\/)?([^\/]+)/)?.[1] || site.url}
+          </span>
+          <Badge
+            className={`text-xs font-medium px-2 py-1 rounded-full ${
+              site.safe === "safe"
+                ? "bg-green-100 text-green-800 border-green-300"
+                : site.safe === "warning"
+                ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+                : "bg-red-100 text-red-800 border-red-300"
+            }`}
+          >
+            {site.safe === "safe"
+              ? "Safe"
+              : site.safe === "warning"
+              ? "Warning"
+              : "Danger"}
+          </Badge>
+        </button>
+      ))}
+    </div>
+  )}
+</div>
+
       </div>
     </div>
   )
 }
+
