@@ -101,18 +101,26 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
             Safety Score
           </div>
           <div className="flex items-center justify-center gap-1 mt-3">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className={`w-8 h-1.5 rounded-full ${
-                  i < Math.floor(safetyScore / 20)
-                    ? `bg-gradient-to-r ${getColorClasses(getStatusFromScore(safetyScore)).gradient}`
-                    : mode === "dark"
-                      ? "bg-slate-700"
-                      : "bg-brand-200"
-                }`}
-              />
-            ))}
+            {[...Array(5)].map((_, i) => {
+              const segmentFill = Math.min(Math.max((safetyScore - i * 20) / 20, 0), 1)
+              const colors = getColorClasses(getStatusFromScore(safetyScore))
+
+              return (
+                <div
+                  key={i}
+                  className={`relative w-8 h-1.5 rounded-full overflow-hidden ${
+                    mode === "dark" ? "bg-slate-700" : "bg-brand-200"
+                  }`}
+                >
+                  <div
+                    className={`absolute inset-y-0 left-0 transition-all ${
+                      segmentFill > 0 ? `bg-gradient-to-r ${colors.gradient}` : ""
+                    }`}
+                    style={{ width: `${segmentFill * 100}%` }}
+                  />
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
