@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { crx } from '@crxjs/vite-plugin'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import manifest from './manifest.json' assert { type: 'json' }
+import manifest from './src/manifest.json' with { type: 'json' }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
