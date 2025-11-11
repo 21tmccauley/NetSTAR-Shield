@@ -6,7 +6,7 @@
    components, and base styles. Tailwind v4 uses a new architecture where
    everything is imported as a single module. */
 @import "tailwindcss";
-
+@plugin "tailwind-scrollbar";
 /* Note: Using tailwindcss-animate plugin for animations */
 
 /* ==========================================================================
@@ -369,10 +369,13 @@
     /* -ms-overflow-style: none; */
   }
   
-  /* Hide scrollbar for Chrome, Safari, and Opera */
-  /* body::-webkit-scrollbar {
-    display: none;
-  } */
+  ::-webkit-scrollbar{
+      @apply w-1 bg-transparent;
+      @apply h-1 bg-transparent;
+   }
+   ::-webkit-scrollbar-thumb{
+      @apply rounded-full bg-gray-400
+   }
   
   /* Apply scrollbar hiding to all scrollable elements within the extension */
   * {
