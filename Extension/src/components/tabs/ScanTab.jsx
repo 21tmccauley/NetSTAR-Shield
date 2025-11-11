@@ -2,12 +2,13 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Search, Shield, Sparkles } from "lucide-react"
+import { Search, Shield, Sparkles, AlertCircle, X } from "lucide-react"
 
 export function ScanTab({ mode, onScanComplete }) {
   const [scanUrl, setScanUrl] = useState("")
   const [isScanning, setIsScanning] = useState(false)
   const [recentScans, setRecentScans] = useState([]);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
     chrome.storage.local.get("recentScans", (data) => {
@@ -26,23 +27,25 @@ export function ScanTab({ mode, onScanComplete }) {
   const handleScan = () => {
     if (!scanUrl || isScanning) return
     setIsScanning(true)
+    setErrorMessage(null) // Clear any previous error
 
     chrome.runtime.sendMessage(
       { action: "scanUrl", url:scanUrl },
       (result) => {
         setIsScanning(false);
 
-        if (onScanComplete) {
+        // Check if there's an error response
+        if (result && result.error) {
+          setErrorMessage(result.message || "Invalid URL. Please enter a valid website address.");
+          return; // Don't navigate away, stay on scan tab
+        }
+
+        // Only navigate to home if scan was successful
+        if (onScanComplete && result && !result.error) {
           onScanComplete(scanUrl);
         }
       }
     );
-    //setTimeout(() => {
-      //setIsScanning(false)
-      //if (onScanComplete) {
-        //onScanComplete(scanUrl)
-      //}
-    //}, 2000)
   };
 
   const handleKeyDown = (e) => {
@@ -76,7 +79,10 @@ export function ScanTab({ mode, onScanComplete }) {
             type="text"
             placeholder="https://example.com"
             value={scanUrl}
-            onChange={(e) => setScanUrl(e.target.value)}
+            onChange={(e) => {
+              setScanUrl(e.target.value)
+              setErrorMessage(null) // Clear error when user types
+            }}
             onKeyDown={handleKeyDown}
             className={`rounded-xl ${mode === "dark" ? "bg-slate-800 border-slate-700 text-white" : "border-brand-200 text-slate-900"}`}
           />
@@ -84,6 +90,45 @@ export function ScanTab({ mode, onScanComplete }) {
             Tip: You can paste any URL or IP address
           </p>
         </div>
+
+        {/* Error Warning Message */}
+        {errorMessage && (
+          <div
+            className={`p-4 rounded-xl border-2 ${
+              mode === "dark"
+                ? "bg-amber-900/20 border-amber-500/50"
+                : "bg-amber-50 border-amber-300"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
+                mode === "dark" ? "text-amber-400" : "text-amber-600"
+              }`} />
+              <div className="flex-1">
+                <p className={`text-sm font-medium ${
+                  mode === "dark" ? "text-amber-300" : "text-amber-800"
+                }`}>
+                  Invalid URL
+                </p>
+                <p className={`text-xs mt-1 ${
+                  mode === "dark" ? "text-amber-200" : "text-amber-700"
+                }`}>
+                  {errorMessage}
+                </p>
+              </div>
+              <button
+                onClick={() => setErrorMessage(null)}
+                className={`flex-shrink-0 p-1 rounded-full hover:bg-opacity-20 ${
+                  mode === "dark"
+                    ? "text-amber-300 hover:bg-amber-500"
+                    : "text-amber-600 hover:bg-amber-200"
+                }`}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {!isScanning ? (
           <Button
