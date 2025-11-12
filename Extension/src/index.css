@@ -284,29 +284,14 @@
     @apply bg-background;
     /* Use our semantic foreground color (dark in light mode, light in dark mode) */
     @apply text-foreground;
-    /* Hide scrollbar for Firefox */
-    /* scrollbar-width: none; */
-    /* Hide scrollbar for IE and Edge */
-    /* -ms-overflow-style: none; */
   }
   
-  ::-webkit-scrollbar{
-      @apply w-1 bg-transparent;
-      @apply h-1 bg-transparent;
-   }
-   ::-webkit-scrollbar-thumb{
-      @apply rounded-full bg-gray-400
-   }
-  
-  /* Apply scrollbar hiding to all scrollable elements within the extension */
-  * {
-    /* Hide scrollbar for Firefox */
-    /* scrollbar-width: none; */
-    /* Hide scrollbar for IE and Edge */
-    /* -ms-overflow-style: none; */
+  /* Custom scrollbar styling */
+  ::-webkit-scrollbar {
+    @apply w-1 h-1;
   }
   
-  /* *::-webkit-scrollbar {
-    display: none;
-  } */
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-gray-400;
+  }
 }
