@@ -198,11 +198,11 @@
   --status-excellent-badge: oklch(0.50 0.18 150);    /* Rich green badge */
   --status-excellent-gradient: oklch(0.45 0.16 155); /* Rich green gradient end */
   
-  /* Good status - Yellow-green */
-  --status-good-bg: oklch(0.95 0.05 120);           /* Light yellow-green background */
-  --status-good-text: oklch(0.50 0.15 120);         /* Yellow-green text */
-  --status-good-badge: oklch(0.60 0.15 120);        /* Yellow-green badge */
-  --status-good-gradient: oklch(0.65 0.14 100);      /* Yellow-green gradient end */
+  /* Good status - Bright lime green */
+  --status-good-bg: oklch(0.95 0.05 135);           /* Light lime green background */
+  --status-good-text: oklch(0.55 0.20 135);         /* Bright lime green text */
+  --status-good-badge: oklch(0.70 0.20 135);        /* Bright lime green badge */
+  --status-good-gradient: oklch(0.75 0.18 130);      /* Bright lime green gradient end */
   
   /* Moderate status - Amber (unchanged) */
   --status-moderate-bg: oklch(0.95 0.05 70);         /* Light amber background */
@@ -305,11 +305,11 @@
   --status-excellent-badge: oklch(0.55 0.18 150);    /* Rich green badge */
   --status-excellent-gradient: oklch(0.50 0.16 155); /* Rich green gradient end */
   
-  /* Good status - Yellow-green (adjusted for dark mode) */
-  --status-good-bg: oklch(0.20 0.10 120 / 30%);      /* Dark yellow-green background with opacity */
-  --status-good-text: oklch(0.70 0.15 120);          /* Light yellow-green text */
-  --status-good-badge: oklch(0.65 0.15 120);         /* Yellow-green badge */
-  --status-good-gradient: oklch(0.70 0.14 100);      /* Yellow-green gradient end */
+  /* Good status - Bright lime green (adjusted for dark mode) */
+  --status-good-bg: oklch(0.20 0.10 135 / 30%);      /* Dark lime green background with opacity */
+  --status-good-text: oklch(0.75 0.20 135);          /* Bright lime green text */
+  --status-good-badge: oklch(0.70 0.20 135);          /* Bright lime green badge */
+  --status-good-gradient: oklch(0.75 0.18 130);       /* Bright lime green gradient end */
   
   /* Moderate status - Amber (unchanged, adjusted for dark mode) */
   --status-moderate-bg: oklch(0.20 0.10 70 / 30%);   /* Dark amber background with opacity */
