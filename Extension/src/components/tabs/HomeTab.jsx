@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Lock,
   GlobeLock,
@@ -11,11 +11,11 @@ import {
   ZoomIn,
   ScrollText,
   FileUser,
-  NotebookText
-} from "lucide-react"
-import { getStatusFromScore, getStatusMessage } from "@/lib/securityUtils"
-import { getColorClasses } from "@/lib/themeUtils"
-import { DEFAULT_INDICATOR_DATA } from "@/lib/constants"
+  NotebookText,
+} from "lucide-react";
+import { getStatusFromScore, getStatusMessage } from "@/lib/securityUtils";
+import { getColorClasses } from "@/lib/themeUtils";
+import { DEFAULT_INDICATOR_DATA } from "@/lib/constants";
 
 // Icon mapping for indicators
 const INDICATOR_ICONS = {
@@ -26,25 +26,48 @@ const INDICATOR_ICONS = {
   ip: Network,
   dns: NotebookText,
   whois: FileUser,
-}
+};
+
+const INDICATORS_OPEN_KEY = "indicatorsOpen";
 
 export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
-  const [currentUrl, setCurrentUrl] = useState("")
-  const [showIndicators, setShowIndicators] = useState(false)
-  const [safetyScore, setSafetyScore] = useState(87) // Default value
-  const [securityData, setSecurityData] = useState(null)
+  const [currentUrl, setCurrentUrl] = useState("");
+  const [safetyScore, setSafetyScore] = useState(87); // Default value
+  const [securityData, setSecurityData] = useState(null);
 
-  // Allow external control of showIndicators (for tour)
-  useEffect(() => {
-    if (forceShowIndicators !== undefined) {
-      setShowIndicators(forceShowIndicators)
+  // Option 2: persist open/closed state in localStorage
+  const [showIndicators, setShowIndicators] = useState(() => {
+    try {
+      if (typeof window === "undefined") return false;
+      const saved = window.localStorage.getItem(INDICATORS_OPEN_KEY);
+      return saved ? saved === "1" : false;
+    } catch {
+      return false;
     }
-  }, [forceShowIndicators])
+  });
 
+  // If you want a tour or parent to force the open state, keep honoring it
+  const computedShowIndicators =
+    forceShowIndicators ?? showIndicators;
+
+  // Persist user-toggled state (do not persist the forced override)
   useEffect(() => {
-    // Get current tab URL and security data
-    if (typeof chrome !== 'undefined' && chrome.runtime) {
-      chrome.runtime.sendMessage({ action: 'getCurrentTab' }, (response) => {
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          INDICATORS_OPEN_KEY,
+          showIndicators ? "1" : "0"
+        );
+      }
+    } catch {
+      /* ignore write errors */
+    }
+  }, [showIndicators]);
+
+  // Get current tab URL and security data (Chrome extension context)
+  useEffect(() => {
+    if (typeof chrome !== "undefined" && chrome.runtime) {
+      chrome.runtime.sendMessage({ action: "getCurrentTab" }, (response) => {
         if (response && response.url) {
           try {
             const url = new URL(response.url);
@@ -52,8 +75,8 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
           } catch (e) {
             setCurrentUrl("this site");
           }
-          
-          // Update safety score from background script if available
+
+          // Update safety score & data from background script if available
           if (response.securityData && response.securityData.safetyScore) {
             setSafetyScore(response.securityData.safetyScore);
             setSecurityData(response.securityData);
@@ -65,20 +88,36 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     }
   }, []);
 
-  // Map indicator data with icons
-  const indicators = DEFAULT_INDICATOR_DATA.map(data => ({
-    ...data,
-    icon: INDICATOR_ICONS[data.id]
-  }))
+  // Build indicators with icons + score (merge live score if provided), then sort by score desc
+  const indicators = DEFAULT_INDICATOR_DATA
+    .map((data) => ({
+      ...data,
+      score: securityData?.indicators?.[data.id]?.score ?? data.score ?? 0,
+      icon: INDICATOR_ICONS[data.id],
+    }))
+
+  const handleToggleIndicators = () => {
+    // If a forced value is provided (tour/demo), don't toggle the persisted state
+    if (forceShowIndicators != null) return;
+    setShowIndicators((openState) => !openState);
+  };
 
   return (
     <div className="p-6">
       {/* Header with friendly greeting */}
       <div className="text-center mb-6">
-        <h2 className={`font-bold text-xl mb-1 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
+        <h2
+          className={`font-bold text-xl mb-1 ${
+            mode === "dark" ? "text-white" : "text-slate-900"
+          }`}
+        >
           You're Safe Here!
         </h2>
-        <p className={`text-sm ${mode === "dark" ? "text-slate-200" : "text-brand-600"}`}>
+        <p
+          className={`text-sm ${
+            mode === "dark" ? "text-slate-200" : "text-brand-600"
+          }`}
+        >
           {currentUrl} is looking good
         </p>
       </div>
@@ -86,24 +125,43 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
       {/* Friendly Score Display */}
       <div
         id="security-score"
-        className={`rounded-2xl p-6 mb-6 ${mode === "dark" ? "bg-gradient-to-br from-brand-900/50 to-brand-accent-500/30" : "bg-gradient-to-br from-brand-100 to-brand-accent-400/20"}`}
+        className={`rounded-2xl p-6 mb-6 ${
+          mode === "dark"
+            ? "bg-gradient-to-br from-brand-900/50 to-brand-accent-500/30"
+            : "bg-gradient-to-br from-brand-100 to-brand-accent-400/20"
+        }`}
       >
         <div className="text-center">
           <div className="inline-flex items-baseline gap-2 mb-2">
-            <span className={`text-6xl font-bold bg-gradient-to-r ${getColorClasses(getStatusFromScore(safetyScore)).gradient} bg-clip-text text-transparent`}>
+            <span
+              className={`text-6xl font-bold bg-gradient-to-r ${
+                getColorClasses(getStatusFromScore(safetyScore)).gradient
+              } bg-clip-text text-transparent`}
+            >
               {safetyScore}
             </span>
-            <span className={`text-2xl font-medium ${mode === "dark" ? "text-slate-100" : "text-brand-600"}`}>
+            <span
+              className={`text-2xl font-medium ${
+                mode === "dark" ? "text-slate-100" : "text-brand-600"
+              }`}
+            >
               /100
             </span>
           </div>
-          <div className={`text-sm font-medium ${mode === "dark" ? "text-slate-100" : "text-brand-700"}`}>
+          <div
+            className={`text-sm font-medium ${
+              mode === "dark" ? "text-slate-100" : "text-brand-700"
+            }`}
+          >
             Safety Score
           </div>
           <div className="flex items-center justify-center gap-1 mt-3">
             {[...Array(5)].map((_, i) => {
-              const segmentFill = Math.min(Math.max((safetyScore - i * 20) / 20, 0), 1)
-              const colors = getColorClasses(getStatusFromScore(safetyScore))
+              const segmentFill = Math.min(
+                Math.max((safetyScore - i * 20) / 20, 0),
+                1
+              );
+              const colors = getColorClasses(getStatusFromScore(safetyScore));
 
               return (
                 <div
@@ -119,7 +177,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
                     style={{ width: `${segmentFill * 100}%` }}
                   />
                 </div>
-              )
+              );
             })}
           </div>
         </div>
@@ -128,48 +186,64 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
       {/* Friendly Indicators */}
       <div id="security-indicators" className="space-y-3">
         <button
-          onClick={() => setShowIndicators(!showIndicators)}
-          className={`text-sm font-semibold mb-3 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ${mode === "dark" ? "text-white" : "text-brand-800"}`}
+          onClick={handleToggleIndicators}
+          className={`text-sm font-semibold mb-3 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ${
+            mode === "dark" ? "text-white" : "text-brand-800"
+          }`}
         >
           <ZoomIn className="h-4 w-4" />
           What We Checked
-          <span className="text-xs ml-auto">{showIndicators ? "▼" : "▶"}</span>
+          <span className="text-xs ml-auto">
+            {computedShowIndicators ? "▼" : "▶"}
+          </span>
         </button>
-        {showIndicators && indicators.map((indicator) => {
-          const Icon = indicator.icon
-          const status = getStatusFromScore(indicator.score)
-          const colors = getColorClasses(status)
-          
-          return (
-            <button
-              key={indicator.id}
-              onClick={() => onNavigate("details", { ...indicator, status })}
-              className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all hover:scale-[1.02] ${
-                mode === "dark" ? "bg-slate-800/50 hover:bg-slate-800" : "bg-white hover:shadow-md"
-              }`}
-            >
-              <div className={`p-2 rounded-lg ${colors.bg}`}>
-                <Icon className={`h-4 w-4 ${colors.text}`} />
-              </div>
-              <div className="flex-1 text-left">
-                <div className={`text-sm font-medium ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
-                  {indicator.name}
+
+        {computedShowIndicators &&
+          indicators.map((indicator) => {
+            const Icon = indicator.icon;
+            const status = getStatusFromScore(indicator.score);
+            const colors = getColorClasses(status);
+
+            return (
+              <button
+                key={indicator.id}
+                onClick={() => onNavigate("details", { ...indicator, status })}
+                className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all hover:scale-[1.02] ${
+                  mode === "dark"
+                    ? "bg-slate-800/50 hover:bg-slate-800"
+                    : "bg-white hover:shadow-md"
+                }`}
+              >
+                <div className={`p-2 rounded-lg ${colors.bg}`}>
+                  <Icon className={`h-4 w-4 ${colors.text}`} />
                 </div>
-                <div className={`text-xs ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>
-                  {getStatusMessage(status)}
+                <div className="flex-1 text-left">
+                  <div
+                    className={`text-sm font-medium ${
+                      mode === "dark" ? "text-white" : "text-slate-900"
+                    }`}
+                  >
+                    {indicator.name}
+                  </div>
+                  <div
+                    className={`text-xs ${
+                      mode === "dark" ? "text-slate-300" : "text-slate-600"
+                    }`}
+                  >
+                    {getStatusMessage(status)}
+                  </div>
                 </div>
-              </div>
-              {status === "excellent" || status === "good" ? (
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-              ) : status === "moderate" ? (
-                <AlertCircle className="h-5 w-5 text-amber-500" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-red-500" />
-              )}
-            </button>
-          )
-        })}
+                {status === "excellent" || status === "good" ? (
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                ) : status === "moderate" ? (
+                  <AlertCircle className="h-5 w-5 text-amber-500" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                )}
+              </button>
+            );
+          })}
       </div>
     </div>
-  )
+  );
 }
