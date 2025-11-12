@@ -28,6 +28,7 @@ const INDICATOR_ICONS = {
   whois: FileUser,
 };
 
+// localStorage key used to remember whether "What We Checked" is open or closed across navigations/reloads
 const INDICATORS_OPEN_KEY = "indicatorsOpen";
 
 export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
@@ -35,7 +36,8 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   const [safetyScore, setSafetyScore] = useState(87); // Default value
   const [securityData, setSecurityData] = useState(null);
 
-  // Option 2: persist open/closed state in localStorage
+  // Persist open/closed state in localStorage
+  // Persisted open/closed UI state initialized from localStorage (runs once on mount)
   const [showIndicators, setShowIndicators] = useState(() => {
     try {
       if (typeof window === "undefined") return false;
@@ -46,11 +48,13 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     }
   });
 
-  // If you want a tour or parent to force the open state, keep honoring it
+// If you want a tour or parent to force the open state, keep honoring it
+// Effective open state: allow an external prop (e.g., a guided tour) to override the user's persisted choice
   const computedShowIndicators =
     forceShowIndicators ?? showIndicators;
 
   // Persist user-toggled state (do not persist the forced override)
+  // Write the user's latest open/closed choice to localStorage whenever it changes
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
@@ -88,7 +92,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     }
   }, []);
 
-  // Build indicators with icons + score (merge live score if provided), then sort by score desc
+  // Build indicators with icons + score (merge live score if provided), then sort by score asc
   const indicators = DEFAULT_INDICATOR_DATA
     .map((data) => ({
       ...data,
@@ -96,6 +100,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
       icon: INDICATOR_ICONS[data.id],
     }))
 
+    // Toggle and persist the open/closed state unless a forced override is active
   const handleToggleIndicators = () => {
     // If a forced value is provided (tour/demo), don't toggle the persisted state
     if (forceShowIndicators != null) return;
