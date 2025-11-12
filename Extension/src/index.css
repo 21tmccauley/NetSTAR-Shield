@@ -6,7 +6,7 @@
    components, and base styles. Tailwind v4 uses a new architecture where
    everything is imported as a single module. */
 @import "tailwindcss";
-
+@plugin "tailwind-scrollbar";
 /* Note: Using tailwindcss-animate plugin for animations */
 
 /* ==========================================================================
@@ -284,5 +284,29 @@
     @apply bg-background;
     /* Use our semantic foreground color (dark in light mode, light in dark mode) */
     @apply text-foreground;
+    /* Hide scrollbar for Firefox */
+    /* scrollbar-width: none; */
+    /* Hide scrollbar for IE and Edge */
+    /* -ms-overflow-style: none; */
   }
+  
+  ::-webkit-scrollbar{
+      @apply w-1 bg-transparent;
+      @apply h-1 bg-transparent;
+   }
+   ::-webkit-scrollbar-thumb{
+      @apply rounded-full bg-gray-400
+   }
+  
+  /* Apply scrollbar hiding to all scrollable elements within the extension */
+  * {
+    /* Hide scrollbar for Firefox */
+    /* scrollbar-width: none; */
+    /* Hide scrollbar for IE and Edge */
+    /* -ms-overflow-style: none; */
+  }
+  
+  /* *::-webkit-scrollbar {
+    display: none;
+  } */
 }

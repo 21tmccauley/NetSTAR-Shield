@@ -147,8 +147,10 @@ function Popup() {
                 size="icon"
                 onClick={handleStartTour}
                 className="rounded-full h-8 w-8"
-                >
-                  <MessageCircleQuestionMark mode={mode} />
+              >
+                <MessageCircleQuestionMark
+                  className={`h-4 w-4 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`}
+                />
               </Button>
               <Button
                 id="settings-button"
