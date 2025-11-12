@@ -101,6 +101,24 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   
+  /* Status colors - Security status indicators */
+  --color-status-excellent-bg: var(--status-excellent-bg);
+  --color-status-excellent-text: var(--status-excellent-text);
+  --color-status-excellent-badge: var(--status-excellent-badge);
+  --color-status-excellent-gradient: var(--status-excellent-gradient);
+  --color-status-good-bg: var(--status-good-bg);
+  --color-status-good-text: var(--status-good-text);
+  --color-status-good-badge: var(--status-good-badge);
+  --color-status-good-gradient: var(--status-good-gradient);
+  --color-status-moderate-bg: var(--status-moderate-bg);
+  --color-status-moderate-text: var(--status-moderate-text);
+  --color-status-moderate-badge: var(--status-moderate-badge);
+  --color-status-moderate-gradient: var(--status-moderate-gradient);
+  --color-status-poor-bg: var(--status-poor-bg);
+  --color-status-poor-text: var(--status-poor-text);
+  --color-status-poor-badge: var(--status-poor-badge);
+  --color-status-poor-gradient: var(--status-poor-gradient);
+  
   /* Border radius system - Creates a consistent scale of rounded corners
      All values are calculated relative to the base --radius value,
      ensuring consistency and easy theme-wide adjustments. */
@@ -219,6 +237,34 @@
   /* Accent color - Cyan (adjust these to change accent color) */
   --brand-accent-400: oklch(0.72 0.14 200);  /* cyan-400 - gradients */
   --brand-accent-500: oklch(0.62 0.16 200);  /* cyan-500 - accents */
+  
+  /* ========================================================================
+     STATUS COLORS (LIGHT MODE) - Security status indicators
+     ======================================================================== */
+  
+  /* Excellent status - Rich green */
+  --status-excellent-bg: oklch(0.95 0.05 150);      /* Light green background */
+  --status-excellent-text: oklch(0.35 0.15 150);     /* Rich green text */
+  --status-excellent-badge: oklch(0.50 0.18 150);    /* Rich green badge */
+  --status-excellent-gradient: oklch(0.45 0.16 155); /* Rich green gradient end */
+  
+  /* Good status - Yellow-green */
+  --status-good-bg: oklch(0.95 0.05 120);           /* Light yellow-green background */
+  --status-good-text: oklch(0.50 0.15 120);         /* Yellow-green text */
+  --status-good-badge: oklch(0.60 0.15 120);        /* Yellow-green badge */
+  --status-good-gradient: oklch(0.65 0.14 100);      /* Yellow-green gradient end */
+  
+  /* Moderate status - Amber (unchanged) */
+  --status-moderate-bg: oklch(0.95 0.05 70);         /* Light amber background */
+  --status-moderate-text: oklch(0.50 0.15 70);       /* Amber text */
+  --status-moderate-badge: oklch(0.65 0.15 70);      /* Amber badge */
+  --status-moderate-gradient: oklch(0.70 0.15 50);   /* Amber gradient end (orange) */
+  
+  /* Poor status - Red (unchanged) */
+  --status-poor-bg: oklch(0.95 0.05 25);             /* Light red background */
+  --status-poor-text: oklch(0.50 0.20 25);           /* Red text */
+  --status-poor-badge: oklch(0.60 0.20 25);          /* Red badge */
+  --status-poor-gradient: oklch(0.65 0.18 350);      /* Red gradient end (pink) */
 }
 
 /* ==========================================================================
@@ -327,6 +373,34 @@
   /* Accent color - Cyan (adjusted for dark mode) */
   --brand-accent-400: oklch(0.75 0.14 200);  /* cyan-400 dark variant */
   --brand-accent-500: oklch(0.68 0.16 200);  /* cyan-500 dark variant */
+  
+  /* ========================================================================
+     STATUS COLORS (DARK MODE) - Security status indicators
+     ======================================================================== */
+  
+  /* Excellent status - Rich green (adjusted for dark mode) */
+  --status-excellent-bg: oklch(0.20 0.10 150 / 30%); /* Dark green background with opacity */
+  --status-excellent-text: oklch(0.70 0.15 150);     /* Light rich green text */
+  --status-excellent-badge: oklch(0.55 0.18 150);    /* Rich green badge */
+  --status-excellent-gradient: oklch(0.50 0.16 155); /* Rich green gradient end */
+  
+  /* Good status - Yellow-green (adjusted for dark mode) */
+  --status-good-bg: oklch(0.20 0.10 120 / 30%);      /* Dark yellow-green background with opacity */
+  --status-good-text: oklch(0.70 0.15 120);          /* Light yellow-green text */
+  --status-good-badge: oklch(0.65 0.15 120);         /* Yellow-green badge */
+  --status-good-gradient: oklch(0.70 0.14 100);      /* Yellow-green gradient end */
+  
+  /* Moderate status - Amber (unchanged, adjusted for dark mode) */
+  --status-moderate-bg: oklch(0.20 0.10 70 / 30%);   /* Dark amber background with opacity */
+  --status-moderate-text: oklch(0.70 0.15 70);       /* Light amber text */
+  --status-moderate-badge: oklch(0.70 0.15 70);      /* Amber badge */
+  --status-moderate-gradient: oklch(0.75 0.15 50);   /* Amber gradient end (orange) */
+  
+  /* Poor status - Red (unchanged, adjusted for dark mode) */
+  --status-poor-bg: oklch(0.20 0.10 25 / 30%);        /* Dark red background with opacity */
+  --status-poor-text: oklch(0.70 0.20 25);            /* Light red text */
+  --status-poor-badge: oklch(0.65 0.20 25);          /* Red badge */
+  --status-poor-gradient: oklch(0.70 0.18 350);       /* Red gradient end (pink) */
 }
 
 /* ==========================================================================
