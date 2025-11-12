@@ -66,11 +66,12 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   }, []);
 
   // Map indicator data with icons
-  const indicators = DEFAULT_INDICATOR_DATA.map(data => ({
+  const indicators = DEFAULT_INDICATOR_DATA
+  .sort(((a, b) => a.score - b.score))
+  .map(data => ({
     ...data,
     icon: INDICATOR_ICONS[data.id]
   }))
-
   return (
     <div className="p-6">
       {/* Header with friendly greeting */}
