@@ -16,7 +16,7 @@ const ICON_STATES = {
 const TEST_SCORE = null;
 
 // The TTL for the cache storing scan results.
-const CACHE_DURATION = 1000 * 60 * 60;
+const CACHE_DURATION = 1000 * 5;
 
 // Function to check cache or scan
 async function getCachedOrScan(url) {
@@ -171,6 +171,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     // Make sure manually entered websites have a TLD
     if (!/\.[a-z]{2,}/i.test(request.url)) {
       console.log("Invalid URL entered:", request.url);
+      sendResponse({error : true, message: "Invalid URL. Please include a top-level domain."});
       return;
     }
 
@@ -195,6 +196,11 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       if (tabs[0]) {
         // Also send the current security score if available
         const url = tabs[0].url;
+        // Check if URL is a valid URL to be scanned
+        if (!/^https?:\/\//i.test(url)) {
+          sendResponse({ url, title: tabs[0].title, securityData: null });
+          return true;
+        }
         const result = await getCachedOrScan(url);
         sendResponse({ 
           url, 
