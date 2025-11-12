@@ -1,4 +1,4 @@
-import { StrictMode, useState, useRef } from "react"
+import { StrictMode, useState, useRef, useEffect } from "react"
 import { createRoot } from "react-dom/client"
 import { HomeTab } from "@/components/tabs/HomeTab"
 import { DetailsTab } from "@/components/tabs/DetailsTab"
@@ -17,10 +17,39 @@ function Popup() {
   const [selectedIndicator, setSelectedIndicator] = useState(null)
   const [isTourActive, setIsTourActive] = useState(false)
   const [forceShowIndicators, setForceShowIndicators] = useState(undefined)
+  const [isLoaded, setIsLoaded] = useState(false)
   const scrollContainerRef = useRef(null)
 
+  useEffect(() => {
+    if (!chrome?.storage?.sync) {
+      setIsLoaded(true)
+      return
+    }
+
+    let isMounted = true
+    chrome.storage.sync.get({ themeMode: "light" }, ({ themeMode }) => {
+      if (!isMounted) return
+
+      if (themeMode === "dark" || themeMode === "light") {
+        setMode(themeMode)
+      }
+      setIsLoaded(true)
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isLoaded) return
+    if (!chrome?.storage?.sync) return
+
+    chrome.storage.sync.set({ themeMode: mode }, () => {})
+  }, [mode, isLoaded])
+
   const toggleMode = () => {
-    setMode(mode === "light" ? "dark" : "light")
+    setMode((prevMode) => (prevMode === "light" ? "dark" : "light"))
   }
 
   const handleNavigate = (tab, data) => {
@@ -78,6 +107,12 @@ function Popup() {
     return `${baseClasses} ${mode === "dark" ? "text-slate-400 hover:text-brand-300 hover:bg-slate-800/50" : "text-slate-600 hover:text-brand-600 hover:bg-brand-50"}`
   }
 
+  if (!isLoaded) {
+    return (
+      <div className="p-4 text-sm text-slate-500">Loading...</div>
+    )
+  }
+
   return (
     <div className={mode === "dark" ? "dark" : ""}>
       <div
@@ -112,8 +147,10 @@ function Popup() {
                 size="icon"
                 onClick={handleStartTour}
                 className="rounded-full h-8 w-8"
-                >
-                  <MessageCircleQuestionMark mode={mode} />
+              >
+                <MessageCircleQuestionMark
+                  className={`h-4 w-4 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`}
+                />
               </Button>
               <Button
                 id="settings-button"

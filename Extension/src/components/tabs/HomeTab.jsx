@@ -8,7 +8,7 @@ import {
   Network,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
+  ZoomIn,
   ScrollText,
   FileUser,
   NotebookText
@@ -66,11 +66,12 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   }, []);
 
   // Map indicator data with icons
-  const indicators = DEFAULT_INDICATOR_DATA.map(data => ({
+  const indicators = DEFAULT_INDICATOR_DATA
+  .sort(((a, b) => a.score - b.score))
+  .map(data => ({
     ...data,
     icon: INDICATOR_ICONS[data.id]
   }))
-
   return (
     <div className="p-6">
       {/* Header with friendly greeting */}
@@ -101,18 +102,26 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
             Safety Score
           </div>
           <div className="flex items-center justify-center gap-1 mt-3">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className={`w-8 h-1.5 rounded-full ${
-                  i < Math.floor(safetyScore / 20)
-                    ? `bg-gradient-to-r ${getColorClasses(getStatusFromScore(safetyScore)).gradient}`
-                    : mode === "dark"
-                      ? "bg-slate-700"
-                      : "bg-brand-200"
-                }`}
-              />
-            ))}
+            {[...Array(5)].map((_, i) => {
+              const segmentFill = Math.min(Math.max((safetyScore - i * 20) / 20, 0), 1)
+              const colors = getColorClasses(getStatusFromScore(safetyScore))
+
+              return (
+                <div
+                  key={i}
+                  className={`relative w-8 h-1.5 rounded-full overflow-hidden ${
+                    mode === "dark" ? "bg-slate-700" : "bg-brand-200"
+                  }`}
+                >
+                  <div
+                    className={`absolute inset-y-0 left-0 transition-all ${
+                      segmentFill > 0 ? `bg-gradient-to-r ${colors.gradient}` : ""
+                    }`}
+                    style={{ width: `${segmentFill * 100}%` }}
+                  />
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -123,7 +132,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
           onClick={() => setShowIndicators(!showIndicators)}
           className={`text-sm font-semibold mb-3 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ${mode === "dark" ? "text-white" : "text-brand-800"}`}
         >
-          <Sparkles className="h-4 w-4" />
+          <ZoomIn className="h-4 w-4" />
           What We Checked
           <span className="text-xs ml-auto">{showIndicators ? "▼" : "▶"}</span>
         </button>
