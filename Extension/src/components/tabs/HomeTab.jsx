@@ -8,7 +8,7 @@ import {
   Network,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
+  ZoomIn,
   ScrollText,
   FileUser,
   NotebookText
@@ -131,7 +131,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
           onClick={() => setShowIndicators(!showIndicators)}
           className={`text-sm font-semibold mb-3 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ${mode === "dark" ? "text-white" : "text-brand-800"}`}
         >
-          <Sparkles className="h-4 w-4" />
+          <ZoomIn className="h-4 w-4" />
           What We Checked
           <span className="text-xs ml-auto">{showIndicators ? "▼" : "▶"}</span>
         </button>
