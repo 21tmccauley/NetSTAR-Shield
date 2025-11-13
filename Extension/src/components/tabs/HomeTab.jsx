@@ -44,34 +44,112 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   useEffect(() => {
     // Get current tab URL and security data
     if (typeof chrome !== 'undefined' && chrome.runtime) {
-      chrome.runtime.sendMessage({ action: 'getCurrentTab' }, (response) => {
-        if (response && response.url) {
-          try {
-            const url = new URL(response.url);
-            setCurrentUrl(url.hostname);
-          } catch (e) {
-            setCurrentUrl("this site");
+      const getTabData = async () => {
+        try {
+          const response = await new Promise((resolve, reject) => {
+            let resolved = false;
+            const requestId = `getCurrentTab_${Date.now()}_${Math.random()}`;
+            
+            // Set up a one-time message listener for the response
+            const messageListener = (message) => {
+              if (message.action === 'getCurrentTabResponse' && message.requestId === requestId) {
+                chrome.runtime.onMessage.removeListener(messageListener);
+                if (!resolved) {
+                  resolved = true;
+                  resolve(message.data);
+                }
+                return true;
+              }
+            };
+            
+            chrome.runtime.onMessage.addListener(messageListener);
+            
+            // Send the request
+            chrome.runtime.sendMessage({ 
+              action: 'getCurrentTab',
+              requestId: requestId 
+            }, (response) => {
+              const callbackError = chrome.runtime.lastError;
+              
+              // If we got a response synchronously, use it
+              if (response && typeof response === 'object' && response.url !== undefined) {
+                chrome.runtime.onMessage.removeListener(messageListener);
+                if (!resolved) {
+                  resolved = true;
+                  resolve(response);
+                }
+                return;
+              }
+              
+              // Check for port closed error - expected in Manifest V3 with async handlers
+              if (callbackError) {
+                const errorMsg = callbackError.message || String(callbackError);
+                if (errorMsg.includes('message port closed') || 
+                    errorMsg.includes('The message port closed before a response was received')) {
+                  // Wait for message listener to receive the response
+                  return;
+                }
+                
+                // Other fatal errors
+                if (errorMsg.includes('Receiving end does not exist') || 
+                    errorMsg.includes('Could not establish connection') ||
+                    errorMsg.includes('Extension context invalidated')) {
+                  chrome.runtime.onMessage.removeListener(messageListener);
+                  if (!resolved) {
+                    resolved = true;
+                    reject(callbackError);
+                  }
+                  return;
+                }
+              }
+            });
+            
+            // Timeout fallback
+            setTimeout(() => {
+              if (!resolved) {
+                chrome.runtime.onMessage.removeListener(messageListener);
+                resolved = true;
+                resolve(null);
+              }
+            }, 3000);
+          });
+          
+          if (!response) {
+            return;
           }
           
-          // Update safety score from background script if available
-          if (response.securityData && response.securityData.safetyScore) {
-            setSafetyScore(response.securityData.safetyScore);
-            setSecurityData(response.securityData);
+          if (response.url) {
+            try {
+              const url = new URL(response.url);
+              setCurrentUrl(url.hostname);
+            } catch (e) {
+              setCurrentUrl("this site");
+            }
+            
+            // Update safety score from background script if available
+            if (response.securityData?.safetyScore !== undefined) {
+              setSafetyScore(response.securityData.safetyScore);
+              setSecurityData(response.securityData);
+            }
           }
+        } catch (error) {
+          console.error('Error getting current tab:', error);
         }
-      });
+      };
+      
+      getTabData();
     } else {
       setCurrentUrl("example.com");
     }
   }, []);
 
-  // Map indicator data with icons
-  const indicators = DEFAULT_INDICATOR_DATA
-  .sort(((a, b) => a.score - b.score))
-  .map(data => ({
-    ...data,
-    icon: INDICATOR_ICONS[data.id]
-  }))
+  // Map indicator data with icons - use cached data if available, otherwise use defaults
+  const indicators = (securityData?.indicators || DEFAULT_INDICATOR_DATA)
+    .sort(((a, b) => a.score - b.score))
+    .map(data => ({
+      ...data,
+      icon: INDICATOR_ICONS[data.id]
+    }))
   return (
     <div className="p-6">
       {/* Header with friendly greeting */}
@@ -91,7 +169,10 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
       >
         <div className="text-center">
           <div className="inline-flex items-baseline gap-2 mb-2">
-            <span className={`text-6xl font-bold bg-gradient-to-r ${getColorClasses(getStatusFromScore(safetyScore)).gradient} bg-clip-text text-transparent`}>
+            <span 
+              key={`score-${safetyScore}`}
+              className={`text-6xl font-bold bg-gradient-to-r ${getColorClasses(getStatusFromScore(safetyScore)).gradient} bg-clip-text text-transparent`}
+            >
               {safetyScore}
             </span>
             <span className={`text-2xl font-medium ${mode === "dark" ? "text-slate-100" : "text-brand-600"}`}>

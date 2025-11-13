@@ -16,7 +16,7 @@ const ICON_STATES = {
 const TEST_SCORE = null;
 
 // The TTL for the cache storing scan results.
-const CACHE_DURATION = 1000 * 5;
+const CACHE_DURATION = 1000 * 5 * 60; // 5 minutes
 
 // Function to check cache or scan
 async function getCachedOrScan(url) {
@@ -27,7 +27,6 @@ async function getCachedOrScan(url) {
   if (data[cacheKey]) {
     const cached = data[cacheKey];
     if (now - cached.timestamp < CACHE_DURATION) {
-      console.log(`Using cached scan for ${url}`);
       return cached;
     } else {
       await chrome.storage.local.remove(cacheKey);
@@ -63,7 +62,6 @@ function updateIcon(tabId, safetyScore) {
     }
   });
   
-  console.log(`Icon updated to ${iconState} (score: ${safetyScore})`);
 }
 
 // Listen for extension installation
@@ -122,7 +120,6 @@ function updateRecentScans(url, safetyScore) {
 
     chrome.storage.local.set({recentScans: recent});
 
-    console.log('Updated recent scans');
   });
 }
 
@@ -131,12 +128,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     // Only scan if HTTP or HTTPS page
     if (!/^https?:\/\//i.test(tab.url)){
-      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
       return;
     }
     
     // Auto-scan the page and update icon
-    console.log('Tab updated:', tab.url);
     
     // Perform security scan
     const result = await getCachedOrScan(tab.url);
@@ -156,7 +151,6 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   if (tab.url) {
     // Only scan if HTTP or HTTPS
     if (!/^https?:\/\//i.test(tab.url)) {
-      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
       return;
     }
     const result = await getCachedOrScan(tab.url);
@@ -170,7 +164,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   if (request.action === 'scanUrl') {
     // Make sure manually entered websites have a TLD
     if (!/\.[a-z]{2,}/i.test(request.url)) {
-      console.log("Invalid URL entered:", request.url);
       sendResponse({ error: true, message: "Invalid URL. Please enter a valid website address with a top-level domain (e.g., .com, .org, .net)" });
       return true;
     }
@@ -192,23 +185,120 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
   
   if (request.action === 'getCurrentTab') {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true});
-      if (tabs[0]) {
-        // Also send the current security score if available
-        const url = tabs[0].url;
-        // Check if URL is a valid URL to be scanned
-        if (!/^https?:\/\//i.test(url)) {
-          sendResponse({ url, title: tabs[0].title, securityData: null });
-          return true;
+    // If requestId is provided, we'll send response via message (don't keep channel open)
+    if (request.requestId) {
+      (async () => {
+        try {
+          // First, try to get the active tab (most common case)
+          const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          let targetTab = activeTabs[0];
+          
+          // Check if active tab is a valid HTTP/HTTPS page
+          if (!targetTab || !targetTab.url || !/^https?:\/\//i.test(targetTab.url) ||
+              targetTab.url.startsWith('chrome-extension://') || 
+              targetTab.url.startsWith('chrome://') || 
+              targetTab.url.startsWith('edge://') ||
+              targetTab.url.startsWith('about:')) {
+            // Active tab is not a valid webpage, search for the first valid HTTP/HTTPS tab
+            const allTabs = await chrome.tabs.query({ currentWindow: true });
+            for (const tab of allTabs) {
+              if (tab.url && /^https?:\/\//i.test(tab.url) &&
+                  !tab.url.startsWith('chrome-extension://') && 
+                  !tab.url.startsWith('chrome://') && 
+                  !tab.url.startsWith('edge://') &&
+                  !tab.url.startsWith('about:')) {
+                targetTab = tab;
+                break;
+              }
+            }
+          }
+          
+          let response;
+          if (targetTab && targetTab.url) {
+            const url = targetTab.url;
+            
+            // Check if URL is a valid URL to be scanned
+            if (!/^https?:\/\//i.test(url)) {
+              response = { url, title: targetTab.title, securityData: null };
+            } else {
+              const result = await getCachedOrScan(url);
+              response = { 
+                url, 
+                title: targetTab.title,
+                securityData: result || null
+              };
+            }
+          } else {
+            response = { url: null, title: null, securityData: null };
+          }
+          
+          // Send response via message
+          chrome.runtime.sendMessage({
+            action: 'getCurrentTabResponse',
+            requestId: request.requestId,
+            data: response
+          }).catch(() => {
+            // Silently ignore errors - popup might have closed
+          });
+        } catch (error) {
+          console.error('Error in getCurrentTab handler:', error);
+          chrome.runtime.sendMessage({
+            action: 'getCurrentTabResponse',
+            requestId: request.requestId,
+            data: { url: null, title: null, securityData: null, error: error.message }
+          }).catch(() => {
+            // Silently ignore errors - popup might have closed
+          });
         }
-        const result = await getCachedOrScan(url);
-        sendResponse({ 
-          url, 
-          title: tabs[0].title,
-          securityData: result || null
-        });
-      }
-    return true;
+      })();
+      return false; // Don't keep channel open - we're using message pattern
+    } else {
+      // Synchronous response pattern - keep channel open
+      (async () => {
+        try {
+          const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          let targetTab = activeTabs[0];
+          
+          if (!targetTab || !targetTab.url || !/^https?:\/\//i.test(targetTab.url) ||
+              targetTab.url.startsWith('chrome-extension://') || 
+              targetTab.url.startsWith('chrome://') || 
+              targetTab.url.startsWith('edge://') ||
+              targetTab.url.startsWith('about:')) {
+            const allTabs = await chrome.tabs.query({ currentWindow: true });
+            for (const tab of allTabs) {
+              if (tab.url && /^https?:\/\//i.test(tab.url) &&
+                  !tab.url.startsWith('chrome-extension://') && 
+                  !tab.url.startsWith('chrome://') && 
+                  !tab.url.startsWith('edge://') &&
+                  !tab.url.startsWith('about:')) {
+                targetTab = tab;
+                break;
+              }
+            }
+          }
+          
+          if (targetTab && targetTab.url) {
+            const url = targetTab.url;
+            if (!/^https?:\/\//i.test(url)) {
+              sendResponse({ url, title: targetTab.title, securityData: null });
+              return;
+            }
+            const result = await getCachedOrScan(url);
+            sendResponse({ 
+              url, 
+              title: targetTab.title,
+              securityData: result || null
+            });
+          } else {
+            sendResponse({ url: null, title: null, securityData: null });
+          }
+        } catch (error) {
+          console.error('Error in getCurrentTab handler:', error);
+          sendResponse({ url: null, title: null, securityData: null, error: error.message });
+        }
+      })();
+      return true; // Keep the message channel open for async response
+    }
   }
   
   return true;
