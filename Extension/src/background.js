@@ -69,7 +69,6 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// Updating recent scans storage
 function updateRecentScans(url, safetyScore) {
   let safeStatus = 'safe';
   if (safetyScore >= 75) {
