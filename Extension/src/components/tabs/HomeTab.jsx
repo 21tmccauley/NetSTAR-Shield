@@ -77,6 +77,12 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   useEffect(() => {
     if (typeof chrome !== "undefined" && chrome.runtime) {
       chrome.runtime.sendMessage({ action: "getCurrentTab" }, (response) => {
+        // Handle Chrome extension messaging errors
+        if (chrome.runtime.lastError) {
+          console.error("Chrome runtime error:", chrome.runtime.lastError.message);
+          return;
+        }
+
         if (response && response.url) {
           try {
             const url = new URL(response.url);
@@ -98,15 +104,25 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   }, []);
 
   // Build indicators with icons + score (merge live score if provided), then sort by score asc
-  const indicators = DEFAULT_INDICATOR_DATA
-  .sort(((a, b) => a.score - b.score))
-    .map((data) => ({
-      ...data,
-      score: securityData?.indicators?.[data.id]?.score ?? data.score ?? 0,
-      icon: INDICATOR_ICONS[data.id],
-    }))
+  // Convert indicators array to object for easier lookup by id
+  const indicatorsLookup = securityData?.indicators?.reduce((acc, indicator) => {
+    acc[indicator.id] = indicator;
+    return acc;
+  }, {}) || {};
 
-    // Toggle and persist the open/closed state unless a forced override is active
+  const indicators = DEFAULT_INDICATOR_DATA
+    .map((data) => {
+      const liveIndicator = indicatorsLookup[data.id];
+      return {
+        ...data,
+        score: liveIndicator?.score ?? data.score ?? 0,
+        status: liveIndicator?.status ?? getStatusFromScore(data.score ?? 0),
+        icon: INDICATOR_ICONS[data.id],
+      };
+    })
+    .sort((a, b) => a.score - b.score);
+
+  // Toggle and persist the open/closed state unless a forced override is active
   const handleToggleIndicators = () => {
     // If a forced value is provided (tour/demo), don't toggle the persisted state
     if (forceShowIndicators != null) return;
