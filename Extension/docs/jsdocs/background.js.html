@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: background.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: background.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>// Background service worker for NetSTAR extension
+
+const ICON_THRESHOLDS = {
+  SAFE: 75,
+  WARNING: 60
+}
+
+const ICON_STATES = {
+  SAFE: 'safe',
+  WARNING: 'warning',
+  DANGER: 'danger'
+}
+
+// TESTING: Set a specific score here (null = random scores)
+// Examples: 95 (green), 70 (amber), 45 (red), null (random)
+const TEST_SCORE = null;
+
+// Function to update icon based on security score
+function updateIcon(tabId, safetyScore) {
+  let iconState = ICON_STATES.SAFE; // default
+  
+  if (safetyScore >= ICON_THRESHOLDS.SAFE) {
+    iconState = ICON_STATES.SAFE;      // Green ShieldCheck
+  } else if (safetyScore >= ICON_THRESHOLDS.WARNING) {
+    iconState = ICON_STATES.WARNING;   // Amber ShieldCheck
+  } else {
+    iconState = ICON_STATES.DANGER;    // Red ShieldX
+  }
+  
+  // Update the extension icon for this tab
+  const iconPath = (size) => `src/icons/icon-${iconState}-${size}.png`
+
+  chrome.action.setIcon({
+    tabId: tabId,
+    path: {
+      16: iconPath(16),
+      48: iconPath(48),
+      128: iconPath(128)
+    }
+  });
+  
+  console.log(`Icon updated to ${iconState} (score: ${safetyScore})`);
+}
+
+// Listen for extension installation
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('NetSTAR extension installed');
+  
+  // Set default icon to safe state
+  const defaultIconPath = (size) => `src/icons/icon-${ICON_STATES.SAFE}-${size}.png`
+  chrome.action.setIcon({
+    path: {
+      16: defaultIconPath(16),
+      48: defaultIconPath(48),
+      128: defaultIconPath(128)
+    }
+  });
+  
+  // Initialize empty storage
+  chrome.storage.local.set({
+    recentScans: [],
+      //{ url: "github.com", safe: true, timestamp: Date.now() },
+      //{ url: "google.com", safe: true, timestamp: Date.now() },
+      //{ url: "amazon.com", safe: true, timestamp: Date.now() }
+    settings: {
+      autoScan: true,
+      notifications: true
+    }
+  });
+});
+
+// Updating recent scans storage
+/**
+ * 
+ * @param {*} url 
+ * @param {*} safetyScore Just a test
+ */
+function updateRecentScans(url, safetyScore) {
+  let safeStatus = 'safe';
+  if (safetyScore >= 75) {
+    safeStatus = 'safe';
+  } else if (safetyScore >= 60) {
+    safeStatus = 'warning';
+  } else {
+    safeStatus = 'danger';
+  }
+
+  chrome.storage.local.get('recentScans', (data) => {
+    let recent = data.recentScans || [];
+
+    recent = recent.filter(entry => entry.url !== url);
+
+    const newEntry = {
+      url: url,
+      safe: safeStatus,
+      timestamp: Date.now()
+    };
+    recent.unshift(newEntry);
+
+    if (recent.length > 3) {
+      recent = recent.slice(0, 3);
+    }
+
+    chrome.storage.local.set({recentScans: recent});
+
+    console.log('Updated recent scans');
+  });
+}
+
+// Listen for tab updates to auto-scan current page
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' &amp;&amp; tab.url) {
+    // Only scan if HTTP or HTTPS page
+    if (!/^https?:\/\//i.test(tab.url)){
+      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
+      return;
+    }
+    
+    // Auto-scan the page and update icon
+    console.log('Tab updated:', tab.url);
+    
+    // Perform security scan
+    const result = performSecurityScan(tab.url);
+    
+    // Update icon based on safety score
+    updateIcon(tabId, result.safetyScore);
+    
+    // Store the result for the popup to access
+    chrome.storage.local.set({
+      [`scan_${tabId}`]: result
+    });
+
+    // Update recently scanned
+    updateRecentScans(tab.url, result.safetyScore);
+
+  }
+});
+
+// Listen for tab activation (when user switches tabs)
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  const tab = await chrome.tabs.get(activeInfo.tabId);
+  if (tab.url) {
+    // Only scan if HTTP or HTTPS
+    if (!/^https?:\/\//i.test(tab.url)) {
+      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
+      return;
+    }
+
+    // Check if we have a cached scan for this tab
+    const result = await chrome.storage.local.get(`scan_${activeInfo.tabId}`);
+    if (result[`scan_${activeInfo.tabId}`]) {
+      const safetyScore = result[`scan_${activeInfo.tabId}`].safetyScore;
+      updateIcon(activeInfo.tabId, safetyScore);
+
+      // Update recently scanned
+      updateRecentScans(tab.url, safetyScore);
+    } else {
+      // Perform new scan
+      const scanResult = performSecurityScan(tab.url);
+      updateIcon(activeInfo.tabId, scanResult.safetyScore);
+      chrome.storage.local.set({
+        [`scan_${activeInfo.tabId}`]: scanResult
+      });
+
+      updateRecentScans(tab.url, scanResult.safetyScore);
+    }
+  }
+});
+
+// Message handler for communication with popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'scanUrl') {
+    // Make sure manually entered websites have a TLD
+    if (!/\.[a-z]{2,}/i.test(request.url)) {
+      console.log("Invalid URL entered:", request.url);
+      sendResponse({ error: true, message: "Invalid URL. Please enter a valid website address with a top-level domain (e.g., .com, .org, .net)" });
+      return true;
+    }
+
+    // Simulate security scan
+    const result = performSecurityScan(request.url);
+    
+    // Update icon if this is for the current tab
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        updateIcon(tabs[0].id, result.safetyScore);
+        
+        // Store the result
+        chrome.storage.local.set({
+          [`scan_${tabs[0].id}`]: result
+        });      
+
+        // Update the recently scanned
+        updateRecentScans(request.url, result.safetyScore);
+
+      }
+      sendResponse(result);
+    });
+    
+    return true;
+  }
+  
+  if (request.action === 'getCurrentTab') {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      if (tabs[0]) {
+        // Also send the current security score if available
+        const result = await chrome.storage.local.get(`scan_${tabs[0].id}`);
+        sendResponse({ 
+          url: tabs[0].url, 
+          title: tabs[0].title,
+          securityData: result[`scan_${tabs[0].id}`] || null
+        });
+      }
+    });
+    return true; // Will respond asynchronously
+  }
+  
+  return true;
+});
+
+// Simulated security scan function
+function performSecurityScan(url) {
+  // In a real extension, this would make API calls to security services
+  
+  let safetyScore;
+  
+  // Check if we're in test mode with a specific score
+  if (TEST_SCORE !== null) {
+    // Use the test score
+    safetyScore = TEST_SCORE;
+    console.log(`🔧 TEST MODE: Using fixed score of ${TEST_SCORE}`);
+  } else {
+    // For demo: generate varied scores to test different icon states
+    // Most sites will be safe (75-100), some warning (60-74), few danger (&lt;60)
+    const random = Math.random();
+    
+    if (random > 0.8) {
+      // 20% chance of warning or danger
+      safetyScore = Math.floor(Math.random() * 40) + 40; // 40-79
+    } else {
+      // 80% chance of safe
+      safetyScore = Math.floor(Math.random() * 25) + 75; // 75-100
+    }
+  }
+  
+  return {
+    safetyScore: safetyScore,
+    indicators: [
+      { id: "cert", name: "Certificate Health", score: 95, status: "excellent" },
+      { id: "connection", name: "Connection Security", score: 100, status: "excellent" },
+      { id: "domain", name: "Domain Reputation", score: 78, status: "good" },
+      { id: "credentials", name: "Credential Safety", score: 85, status: "good" },
+      { id: "ip", name: "IP Reputation", score: 92, status: "excellent" },
+      { id: "dns", name: "DNS Record Health", score: 88, status: "good" },
+      { id: "whois", name: "WHOIS Pattern", score: 71, status: "moderate" }
+    ],
+    timestamp: Date.now()
+  };
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="BacEnd%250DBack%2520end%2520documentation.module_.html">BacEndBack end documentation.</a></li><li><a href="FrontEnd%250DFront%2520end%2520documentation.module_.html">FrontEndFront end documentation.</a></li><li><a href="UserTesting%250DTesting%2520decisions.module_.html">UserTestingTesting decisions.</a></li></ul><h3>Global</h3><ul><li><a href="global.html#EDUCATIONAL_CONTENT">EDUCATIONAL_CONTENT</a></li><li><a href="global.html#ThemeToggleIcon">ThemeToggleIcon</a></li><li><a href="global.html#getColorClasses">getColorClasses</a></li><li><a href="global.html#getDetailedStatusMessage">getDetailedStatusMessage</a></li><li><a href="global.html#getEducationalContent">getEducationalContent</a></li><li><a href="global.html#getStatusFromScore">getStatusFromScore</a></li><li><a href="global.html#getStatusInfo">getStatusInfo</a></li><li><a href="global.html#getStatusMessage">getStatusMessage</a></li><li><a href="global.html#themeValue">themeValue</a></li><li><a href="global.html#updateRecentScans">updateRecentScans</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Thu Nov 13 2025 09:14:27 GMT-0700 (Mountain Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
