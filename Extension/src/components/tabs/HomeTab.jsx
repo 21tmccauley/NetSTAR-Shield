@@ -17,7 +17,11 @@ import { getStatusFromScore, getStatusMessage } from "@/lib/securityUtils";
 import { getColorClasses } from "@/lib/themeUtils";
 import { DEFAULT_INDICATOR_DATA } from "@/lib/constants";
 
-// Icon mapping for indicators
+
+/**
+ * INDICATOR_ICONS is the variable for each of the What We Checked(WWC) categories' icons
+ */
+
 const INDICATOR_ICONS = {
   cert: ScrollText,
   connection: Lock,
@@ -30,6 +34,7 @@ const INDICATOR_ICONS = {
 
 // localStorage key used to remember whether "What We Checked" is open or closed across navigations/reloads
 const INDICATORS_OPEN_KEY = "indicatorsOpen";
+
 
 export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   const [currentUrl, setCurrentUrl] = useState("");
