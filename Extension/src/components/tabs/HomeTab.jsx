@@ -73,6 +73,11 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     }
   }, [showIndicators]);
 
+  // Toggle indicators visibility
+  const handleToggleIndicators = () => {
+    setShowIndicators((prev) => !prev);
+  };
+
   // Get current tab URL and security data (Chrome extension context)
   useEffect(() => {
     // Get current tab URL and security data
