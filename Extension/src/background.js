@@ -15,6 +15,30 @@ const ICON_STATES = {
 // Examples: 95 (green), 70 (amber), 45 (red), null (random)
 const TEST_SCORE = null;
 
+// The TTL for the cache storing scan results.
+const CACHE_DURATION = 1000 * 5;
+
+// Function to check cache or scan
+async function getCachedOrScan(url) {
+  const cacheKey = `scan_${encodeURIComponent(url)}`;
+  const data = await chrome.storage.local.get(cacheKey);
+  const now = Date.now();
+
+  if (data[cacheKey]) {
+    const cached = data[cacheKey];
+    if (now - cached.timestamp < CACHE_DURATION) {
+      console.log(`Using cached scan for ${url}`);
+      return cached;
+    } else {
+      await chrome.storage.local.remove(cacheKey);
+    }
+  }
+
+  const result = await performSecurityScan(url);
+  await chrome.storage.local.set({ [cacheKey]: result });
+  return result;  
+}
+
 // Function to update icon based on security score
 function updateIcon(tabId, safetyScore) {
   let iconState = ICON_STATES.SAFE; // default
@@ -72,9 +96,9 @@ chrome.runtime.onInstalled.addListener(() => {
 // Updating recent scans storage
 function updateRecentScans(url, safetyScore) {
   let safeStatus = 'safe';
-  if (safetyScore >= 75) {
+  if (safetyScore >= ICON_THRESHOLDS.SAFE) {
     safeStatus = 'safe';
-  } else if (safetyScore >= 60) {
+  } else if (safetyScore >= ICON_THRESHOLDS.WARNING) {
     safeStatus = 'warning';
   } else {
     safeStatus = 'danger';
@@ -103,7 +127,7 @@ function updateRecentScans(url, safetyScore) {
 }
 
 // Listen for tab updates to auto-scan current page
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     // Only scan if HTTP or HTTPS page
     if (!/^https?:\/\//i.test(tab.url)){
@@ -115,15 +139,10 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     console.log('Tab updated:', tab.url);
     
     // Perform security scan
-    const result = performSecurityScan(tab.url);
+    const result = await getCachedOrScan(tab.url);
     
     // Update icon based on safety score
     updateIcon(tabId, result.safetyScore);
-    
-    // Store the result for the popup to access
-    chrome.storage.local.set({
-      [`scan_${tabId}`]: result
-    });
 
     // Update recently scanned
     updateRecentScans(tab.url, result.safetyScore);
@@ -140,30 +159,14 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
       console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
       return;
     }
-
-    // Check if we have a cached scan for this tab
-    const result = await chrome.storage.local.get(`scan_${activeInfo.tabId}`);
-    if (result[`scan_${activeInfo.tabId}`]) {
-      const safetyScore = result[`scan_${activeInfo.tabId}`].safetyScore;
-      updateIcon(activeInfo.tabId, safetyScore);
-
-      // Update recently scanned
-      updateRecentScans(tab.url, safetyScore);
-    } else {
-      // Perform new scan
-      const scanResult = performSecurityScan(tab.url);
-      updateIcon(activeInfo.tabId, scanResult.safetyScore);
-      chrome.storage.local.set({
-        [`scan_${activeInfo.tabId}`]: scanResult
-      });
-
-      updateRecentScans(tab.url, scanResult.safetyScore);
-    }
+    const result = await getCachedOrScan(tab.url);
+    updateIcon(activeInfo.tabId, result.safetyScore);
+    updateRecentScans(tab.url, result.safetyScore);
   }
 });
 
 // Message handler for communication with popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   if (request.action === 'scanUrl') {
     // Make sure manually entered websites have a TLD
     if (!/\.[a-z]{2,}/i.test(request.url)) {
@@ -173,48 +176,46 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     // Simulate security scan
-    const result = performSecurityScan(request.url);
+    const result = await getCachedOrScan(request.url);
     
     // Update icon if this is for the current tab
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        updateIcon(tabs[0].id, result.safetyScore);
-        
-        // Store the result
-        chrome.storage.local.set({
-          [`scan_${tabs[0].id}`]: result
-        });      
-
-        // Update the recently scanned
-        updateRecentScans(request.url, result.safetyScore);
-
-      }
-      sendResponse(result);
-    });
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs[0]) {
+      updateIcon(tabs[0].id, result.safetyScore);     
+      // Update the recently scanned
+      updateRecentScans(request.url, result.safetyScore);
+    }
+      
+    sendResponse(result);
     
     return true;
   }
   
   if (request.action === 'getCurrentTab') {
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true});
       if (tabs[0]) {
         // Also send the current security score if available
-        const result = await chrome.storage.local.get(`scan_${tabs[0].id}`);
+        const url = tabs[0].url;
+        // Check if URL is a valid URL to be scanned
+        if (!/^https?:\/\//i.test(url)) {
+          sendResponse({ url, title: tabs[0].title, securityData: null });
+          return true;
+        }
+        const result = await getCachedOrScan(url);
         sendResponse({ 
-          url: tabs[0].url, 
+          url, 
           title: tabs[0].title,
-          securityData: result[`scan_${tabs[0].id}`] || null
+          securityData: result || null
         });
       }
-    });
-    return true; // Will respond asynchronously
+    return true;
   }
   
   return true;
 });
 
 // Simulated security scan function
-function performSecurityScan(url) {
+async function performSecurityScan(url) {
   // In a real extension, this would make API calls to security services
   
   let safetyScore;

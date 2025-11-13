@@ -99,6 +99,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
 
   // Build indicators with icons + score (merge live score if provided), then sort by score asc
   const indicators = DEFAULT_INDICATOR_DATA
+  .sort(((a, b) => a.score - b.score))
     .map((data) => ({
       ...data,
       score: securityData?.indicators?.[data.id]?.score ?? data.score ?? 0,
@@ -111,7 +112,6 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     if (forceShowIndicators != null) return;
     setShowIndicators((openState) => !openState);
   };
-
   return (
     <div className="p-6">
       {/* Header with friendly greeting */}
