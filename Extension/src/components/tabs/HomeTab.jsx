@@ -21,6 +21,7 @@ import { DEFAULT_INDICATOR_DATA } from "@/lib/constants";
  * Mapping of indicator IDs to their corresponding icon components from lucide-react
  * @type {Object<string, React.ComponentType>}
  * @constant
+ * @memberof module:Front End
  */
 const INDICATOR_ICONS = {
   cert: ScrollText,
@@ -36,6 +37,7 @@ const INDICATOR_ICONS = {
  * localStorage key used to persist the expanded/collapsed state of the "What We Checked" section
  * @type {string}
  * @constant
+ * @memberof module:Front End
  */
 const INDICATORS_OPEN_KEY = "indicatorsOpen";
 
@@ -89,6 +91,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   /**
    * Computed indicator visibility state - allows external control (tour) to override user preference
    * @type {boolean}
+   * @memberof module:Front End~HomeTab
    */
   const computedShowIndicators =
     forceShowIndicators ?? showIndicators;
@@ -96,6 +99,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   /**
    * Effect to persist user's indicator toggle preference to localStorage
    * Runs whenever showIndicators changes, but does not persist forced overrides
+   * @memberof module:Front End~HomeTab
    */
   useEffect(() => {
     try {
@@ -113,6 +117,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   /**
    * Effect to fetch current tab URL and security data from background script
    * Runs once on component mount to populate initial security information
+   * @memberof module:Front End~HomeTab
    */
   useEffect(() => {
     if (typeof chrome !== "undefined" && chrome.runtime) {
@@ -146,6 +151,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
    * @property {string} name - Display name for the indicator
    * @property {number} score - Security score (0-100)
    * @property {React.ComponentType} icon - Icon component for the indicator
+   * @memberof module:Front End~HomeTab
    */
   const indicators = DEFAULT_INDICATOR_DATA
   .sort(((a, b) => a.score - b.score))
@@ -158,6 +164,8 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   /**
    * Handler function to toggle the visibility of the "What We Checked" indicators section
    * Prevents toggling when a forced override is active (e.g., during a tour)
+   * @memberof module:Front End~HomeTab
+   * @function handleToggleIndicators
    */
   const handleToggleIndicators = () => {
     // If a forced value is provided (tour/demo), don't toggle the persisted state

@@ -42,6 +42,7 @@ export function ScanTab({ mode, onScanComplete }) {
   /**
    * Effect to load recent scans from Chrome storage and listen for updates
    * Updates the recent scans list when storage changes
+   * @memberof module:Front End~ScanTab
    */
   useEffect(() => {
     chrome.storage.local.get("recentScans", (data) => {
@@ -61,6 +62,8 @@ export function ScanTab({ mode, onScanComplete }) {
    * Handler function to initiate a security scan for the entered URL
    * Sends a message to the background script to perform the scan
    * Handles error responses and navigates on successful scan
+   * @memberof module:Front End~ScanTab
+   * @function handleScan
    */
   const handleScan = () => {
     if (!scanUrl || isScanning) return
@@ -89,6 +92,8 @@ export function ScanTab({ mode, onScanComplete }) {
   /**
    * Handler function for keyboard events on the URL input
    * Triggers scan when Enter key is pressed
+   * @memberof module:Front End~ScanTab
+   * @function handleKeyDown
    * @param {KeyboardEvent} e - Keyboard event object
    */
   const handleKeyDown = (e) => {
