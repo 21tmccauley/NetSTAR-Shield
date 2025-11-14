@@ -43,6 +43,7 @@ const INDICATORS_OPEN_KEY = "indicatorsOpen";
  * HomeTab component - Main tab displaying security score and indicators for the current website
  * 
  * @component
+ * @memberof module:Front End
  * @param {Object} props - Component props
  * @param {string} props.mode - Current theme mode: "light" or "dark"
  * @param {Function} props.onNavigate - Callback function to navigate to other tabs/pages
@@ -61,19 +62,19 @@ const INDICATORS_OPEN_KEY = "indicatorsOpen";
  * ```
  */
 export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
-  /** @type {[string, Function]} Current website URL hostname */
+  /** Current website URL hostname */
   const [currentUrl, setCurrentUrl] = useState("");
   
-  /** @type {[number, Function]} Security safety score (0-100) */
-  const [safetyScore, setSafetyScore] = useState(87); // Default value
+  /** Security safety score (0-100), default is 87 */
+  const [safetyScore, setSafetyScore] = useState(87);
   
-  /** @type {[Object|null, Function]} Complete security scan data including indicators and metadata */
+  /** Complete security scan data including indicators and metadata, or null if not loaded */
   const [securityData, setSecurityData] = useState(null);
 
   /**
    * State for whether the "What We Checked" indicators section is expanded
    * Initialized from localStorage to persist user's preference across sessions
-   * @type {[boolean, Function]}
+   * @type {boolean}
    */
   const [showIndicators, setShowIndicators] = useState(() => {
     try {

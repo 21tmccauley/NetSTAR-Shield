@@ -1,5 +1,25 @@
 import { Button } from "@/components/ui/button"
 
+/**
+ * SettingsTab component - Displays application settings and preferences
+ * 
+ * @component
+ * @memberof module:Front End
+ * @param {Object} props - Component props
+ * @param {string} props.mode - Current theme mode: "light" or "dark"
+ * @param {Function} props.onBack - Callback function to navigate back to the previous tab
+ * @param {Function} props.onStartTour - Callback function to start the guided tour
+ * @returns {JSX.Element} The rendered SettingsTab component
+ * 
+ * @example
+ * ```jsx
+ * <SettingsTab 
+ *   mode="dark" 
+ *   onBack={() => setActiveTab("home")}
+ *   onStartTour={() => setIsTourActive(true)}
+ * />
+ * ```
+ */
 export function SettingsTab({ mode, onBack, onStartTour }) {
   return (
     <div className="p-6 space-y-4">
