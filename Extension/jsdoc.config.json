@@ -1,0 +1,22 @@
+{
+  "source": {
+    "include": ["./src"],
+    "includePattern": ".+\\.(js|jsx|mjs)$",
+    "excludePattern": "(^|\\/|\\\\)_|(node_modules|dist|docs)"
+  },
+  "opts": {
+    "destination": "./docs/jsdocs",
+    "recurse": true,
+    "encoding": "utf8",
+    "readme": "./README.md"
+  },
+  "templates": {
+    "cleverLinks": true,
+    "monospaceLinks": false,
+    "default": {
+      "outputSourceFiles": true
+    }
+  },
+  "plugins": []
+}
+

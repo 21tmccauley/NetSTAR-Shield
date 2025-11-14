@@ -1,4 +1,32 @@
-import React, { useEffect, useState } from "react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: components/tabs/HomeTab.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: components/tabs/HomeTab.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,11 +45,11 @@ import { getStatusFromScore, getStatusMessage } from "@/lib/securityUtils";
 import { getColorClasses } from "@/lib/themeUtils";
 import { DEFAULT_INDICATOR_DATA } from "@/lib/constants";
 
+
 /**
- * Mapping of indicator IDs to their corresponding icon components from lucide-react
- * @type {Object<string, React.ComponentType>}
- * @constant
+ * INDICATOR_ICONS is the variable for each of the What We Checked(WWC) categories' icons
  */
+
 const INDICATOR_ICONS = {
   cert: ScrollText,
   connection: Lock,
@@ -32,49 +60,17 @@ const INDICATOR_ICONS = {
   whois: FileUser,
 };
 
-/**
- * localStorage key used to persist the expanded/collapsed state of the "What We Checked" section
- * @type {string}
- * @constant
- */
+// localStorage key used to remember whether "What We Checked" is open or closed across navigations/reloads
 const INDICATORS_OPEN_KEY = "indicatorsOpen";
 
-/**
- * HomeTab component - Main tab displaying security score and indicators for the current website
- * 
- * @component
- * @param {Object} props - Component props
- * @param {string} props.mode - Current theme mode: "light" or "dark"
- * @param {Function} props.onNavigate - Callback function to navigate to other tabs/pages
- * @param {Function} props.onNavigate.details - Navigate to details tab with indicator data
- * @param {boolean|undefined} props.forceShowIndicators - Force indicators to be shown (used by tour/guided experiences). 
- *   When provided, overrides user's saved preference
- * @returns {JSX.Element} The rendered HomeTab component
- * 
- * @example
- * ```jsx
- * <HomeTab 
- *   mode="dark" 
- *   onNavigate={(tab, data) => setActiveTab(tab)} 
- *   forceShowIndicators={true} 
- * />
- * ```
- */
+
 export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
-  /** @type {[string, Function]} Current website URL hostname */
   const [currentUrl, setCurrentUrl] = useState("");
-  
-  /** @type {[number, Function]} Security safety score (0-100) */
   const [safetyScore, setSafetyScore] = useState(87); // Default value
-  
-  /** @type {[Object|null, Function]} Complete security scan data including indicators and metadata */
   const [securityData, setSecurityData] = useState(null);
 
-  /**
-   * State for whether the "What We Checked" indicators section is expanded
-   * Initialized from localStorage to persist user's preference across sessions
-   * @type {[boolean, Function]}
-   */
+  // Persist open/closed state in localStorage
+  // Persisted open/closed UI state initialized from localStorage (runs once on mount)
   const [showIndicators, setShowIndicators] = useState(() => {
     try {
       if (typeof window === "undefined") return false;
@@ -85,17 +81,13 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     }
   });
 
-  /**
-   * Computed indicator visibility state - allows external control (tour) to override user preference
-   * @type {boolean}
-   */
+// If you want a tour or parent to force the open state, keep honoring it
+// Effective open state: allow an external prop (e.g., a guided tour) to override the user's persisted choice
   const computedShowIndicators =
     forceShowIndicators ?? showIndicators;
 
-  /**
-   * Effect to persist user's indicator toggle preference to localStorage
-   * Runs whenever showIndicators changes, but does not persist forced overrides
-   */
+  // Persist user-toggled state (do not persist the forced override)
+  // Write the user's latest open/closed choice to localStorage whenever it changes
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
@@ -109,14 +101,11 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     }
   }, [showIndicators]);
 
-  /**
-   * Effect to fetch current tab URL and security data from background script
-   * Runs once on component mount to populate initial security information
-   */
+  // Get current tab URL and security data (Chrome extension context)
   useEffect(() => {
-    if (typeof chrome !== "undefined" && chrome.runtime) {
+    if (typeof chrome !== "undefined" &amp;&amp; chrome.runtime) {
       chrome.runtime.sendMessage({ action: "getCurrentTab" }, (response) => {
-        if (response && response.url) {
+        if (response &amp;&amp; response.url) {
           try {
             const url = new URL(response.url);
             setCurrentUrl(url.hostname);
@@ -124,8 +113,8 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
             setCurrentUrl("this site");
           }
 
-          // Update safety score & data from background script if available
-          if (response.securityData && response.securityData.safetyScore) {
+          // Update safety score &amp; data from background script if available
+          if (response.securityData &amp;&amp; response.securityData.safetyScore) {
             setSafetyScore(response.securityData.safetyScore);
             setSecurityData(response.securityData);
           }
@@ -136,16 +125,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     }
   }, []);
 
-  /**
-   * Builds indicator list by merging default indicator data with live security scan data
-   * Maps indicator IDs to icons and merges scores from securityData when available
-   * Sorts indicators by score in ascending order (lowest scores first)
-   * @type {Array<Object>}
-   * @property {string} id - Indicator identifier
-   * @property {string} name - Display name for the indicator
-   * @property {number} score - Security score (0-100)
-   * @property {React.ComponentType} icon - Icon component for the indicator
-   */
+  // Build indicators with icons + score (merge live score if provided), then sort by score asc
   const indicators = DEFAULT_INDICATOR_DATA
   .sort(((a, b) => a.score - b.score))
     .map((data) => ({
@@ -154,37 +134,34 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
       icon: INDICATOR_ICONS[data.id],
     }))
 
-  /**
-   * Handler function to toggle the visibility of the "What We Checked" indicators section
-   * Prevents toggling when a forced override is active (e.g., during a tour)
-   */
+    // Toggle and persist the open/closed state unless a forced override is active
   const handleToggleIndicators = () => {
     // If a forced value is provided (tour/demo), don't toggle the persisted state
     if (forceShowIndicators != null) return;
     setShowIndicators((openState) => !openState);
   };
   return (
-    <div className="p-6">
+    &lt;div className="p-6">
       {/* Header with friendly greeting */}
-      <div className="text-center mb-6">
-        <h2
+      &lt;div className="text-center mb-6">
+        &lt;h2
           className={`font-bold text-xl mb-1 ${
             mode === "dark" ? "text-white" : "text-slate-900"
           }`}
         >
           You're Safe Here!
-        </h2>
-        <p
+        &lt;/h2>
+        &lt;p
           className={`text-sm ${
             mode === "dark" ? "text-slate-200" : "text-brand-600"
           }`}
         >
           {currentUrl} is looking good
-        </p>
-      </div>
+        &lt;/p>
+      &lt;/div>
 
       {/* Friendly Score Display */}
-      <div
+      &lt;div
         id="security-score"
         className={`rounded-2xl p-6 mb-6 ${
           mode === "dark"
@@ -192,31 +169,31 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
             : "bg-gradient-to-br from-brand-100 to-brand-accent-400/20"
         }`}
       >
-        <div className="text-center">
-          <div className="inline-flex items-baseline gap-2 mb-2">
-            <span
+        &lt;div className="text-center">
+          &lt;div className="inline-flex items-baseline gap-2 mb-2">
+            &lt;span
               className={`text-6xl font-bold bg-gradient-to-r ${
                 getColorClasses(getStatusFromScore(safetyScore)).gradient
               } bg-clip-text text-transparent`}
             >
               {safetyScore}
-            </span>
-            <span
+            &lt;/span>
+            &lt;span
               className={`text-2xl font-medium ${
                 mode === "dark" ? "text-slate-100" : "text-brand-600"
               }`}
             >
               /100
-            </span>
-          </div>
-          <div
+            &lt;/span>
+          &lt;/div>
+          &lt;div
             className={`text-sm font-medium ${
               mode === "dark" ? "text-slate-100" : "text-brand-700"
             }`}
           >
             Safety Score
-          </div>
-          <div className="flex items-center justify-center gap-1 mt-3">
+          &lt;/div>
+          &lt;div className="flex items-center justify-center gap-1 mt-3">
             {[...Array(5)].map((_, i) => {
               const segmentFill = Math.min(
                 Math.max((safetyScore - i * 20) / 20, 0),
@@ -225,48 +202,48 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
               const colors = getColorClasses(getStatusFromScore(safetyScore));
 
               return (
-                <div
+                &lt;div
                   key={i}
                   className={`relative w-8 h-1.5 rounded-full overflow-hidden ${
                     mode === "dark" ? "bg-slate-700" : "bg-brand-200"
                   }`}
                 >
-                  <div
+                  &lt;div
                     className={`absolute inset-y-0 left-0 transition-all ${
                       segmentFill > 0 ? `bg-gradient-to-r ${colors.gradient}` : ""
                     }`}
                     style={{ width: `${segmentFill * 100}%` }}
                   />
-                </div>
+                &lt;/div>
               );
             })}
-          </div>
-        </div>
-      </div>
+          &lt;/div>
+        &lt;/div>
+      &lt;/div>
 
       {/* Friendly Indicators */}
-      <div id="security-indicators" className="space-y-3">
-        <button
+      &lt;div id="security-indicators" className="space-y-3">
+        &lt;button
           onClick={handleToggleIndicators}
           className={`text-sm font-semibold mb-3 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ${
             mode === "dark" ? "text-white" : "text-brand-800"
           }`}
         >
-          <ZoomIn className="h-4 w-4" />
+          &lt;ZoomIn className="h-4 w-4" />
           What We Checked
-          <span className="text-xs ml-auto">
+          &lt;span className="text-xs ml-auto">
             {computedShowIndicators ? "▼" : "▶"}
-          </span>
-        </button>
+          &lt;/span>
+        &lt;/button>
 
-        {computedShowIndicators &&
+        {computedShowIndicators &amp;&amp;
           indicators.map((indicator) => {
             const Icon = indicator.icon;
             const status = getStatusFromScore(indicator.score);
             const colors = getColorClasses(status);
 
             return (
-              <button
+              &lt;button
                 key={indicator.id}
                 onClick={() => onNavigate("details", { ...indicator, status })}
                 className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all hover:scale-[1.02] ${
@@ -275,36 +252,59 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
                     : "bg-white hover:shadow-md"
                 }`}
               >
-                <div className={`p-2 rounded-lg ${colors.bg}`}>
-                  <Icon className={`h-4 w-4 ${colors.text}`} />
-                </div>
-                <div className="flex-1 text-left">
-                  <div
+                &lt;div className={`p-2 rounded-lg ${colors.bg}`}>
+                  &lt;Icon className={`h-4 w-4 ${colors.text}`} />
+                &lt;/div>
+                &lt;div className="flex-1 text-left">
+                  &lt;div
                     className={`text-sm font-medium ${
                       mode === "dark" ? "text-white" : "text-slate-900"
                     }`}
                   >
                     {indicator.name}
-                  </div>
-                  <div
+                  &lt;/div>
+                  &lt;div
                     className={`text-xs ${
                       mode === "dark" ? "text-slate-300" : "text-slate-600"
                     }`}
                   >
                     {getStatusMessage(status)}
-                  </div>
-                </div>
+                  &lt;/div>
+                &lt;/div>
                 {status === "excellent" || status === "good" ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  &lt;CheckCircle2 className="h-5 w-5 text-green-500" />
                 ) : status === "moderate" ? (
-                  <AlertCircle className="h-5 w-5 text-amber-500" />
+                  &lt;AlertCircle className="h-5 w-5 text-amber-500" />
                 ) : (
-                  <AlertCircle className="h-5 w-5 text-red-500" />
+                  &lt;AlertCircle className="h-5 w-5 text-red-500" />
                 )}
-              </button>
+              &lt;/button>
             );
           })}
-      </div>
-    </div>
+      &lt;/div>
+    &lt;/div>
   );
 }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Back%2520End.html">Back End</a></li><li><a href="module-Front%2520End.html">Front End</a></li><li><a href="module-Testing.html">Testing</a></li></ul><h3>Global</h3><ul><li><a href="global.html#EDUCATIONAL_CONTENT">EDUCATIONAL_CONTENT</a></li><li><a href="global.html#INDICATOR_ICONS">INDICATOR_ICONS</a></li><li><a href="global.html#ThemeToggleIcon">ThemeToggleIcon</a></li><li><a href="global.html#getColorClasses">getColorClasses</a></li><li><a href="global.html#getDetailedStatusMessage">getDetailedStatusMessage</a></li><li><a href="global.html#getEducationalContent">getEducationalContent</a></li><li><a href="global.html#getStatusFromScore">getStatusFromScore</a></li><li><a href="global.html#getStatusInfo">getStatusInfo</a></li><li><a href="global.html#getStatusMessage">getStatusMessage</a></li><li><a href="global.html#themeValue">themeValue</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Fri Nov 14 2025 08:38:50 GMT-0700 (Mountain Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

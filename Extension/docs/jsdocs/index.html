@@ -42,6 +42,221 @@
 
 
 
+    <section>
+        <article><h1>NetSTAR Shield Browser Extension</h1>
+<p>A friendly and intuitive browser extension that helps users stay safe online by providing real-time security insights about websites they visit.</p>
+<p><img src="https://img.shields.io/badge/Browser-Extension-purple?style=for-the-badge" alt="NetSTAR Extension">
+<img src="https://img.shields.io/badge/React-19-blue?style=for-the-badge" alt="React">
+<img src="https://img.shields.io/badge/Vite-5-646CFF?style=for-the-badge" alt="Vite"></p>
+<h2>Features</h2>
+<h3>Home Tab</h3>
+<ul>
+<li>Real-time safety score (0-100) for the current website</li>
+<li>Visual gradient display showing overall security status</li>
+<li>Expandable security indicators section with 7 detailed metrics:
+<ul>
+<li>Certificate Health</li>
+<li>Connection Security</li>
+<li>Domain Reputation</li>
+<li>Credential Safety</li>
+<li>IP Reputation</li>
+<li>DNS Record Health</li>
+<li>WHOIS Pattern</li>
+</ul>
+</li>
+<li>Click any indicator to view detailed explanations</li>
+</ul>
+<h3>Scan Tab</h3>
+<ul>
+<li>Manually scan any URL before visiting</li>
+<li>Input field with URL validation</li>
+<li>Animated scanning progress indicator</li>
+<li>Recent scan history tracking</li>
+<li>Quick access to previously scanned sites</li>
+</ul>
+<h3>Alerts Tab</h3>
+<ul>
+<li>High-priority security alert display</li>
+<li>Friendly &quot;Hold On!&quot; warning with actionable buttons</li>
+<li>Clear messaging about potential threats</li>
+<li>Simple interface for security awareness</li>
+</ul>
+<h3>Details View</h3>
+<ul>
+<li>Deep dive into individual security indicators</li>
+<li>Color-coded status badges (Excellent/Good/Moderate/Poor)</li>
+<li>Educational insights explaining security concepts</li>
+<li>User-friendly explanations with emojis and icons</li>
+<li>Back navigation to return to home</li>
+</ul>
+<h3>Settings Tab</h3>
+<ul>
+<li>Help &amp; Tutorial section with guided tour button</li>
+<li>General settings placeholder</li>
+<li>Notifications preferences placeholder</li>
+<li>Privacy settings placeholder</li>
+<li>Accessible via gear icon in header</li>
+</ul>
+<h3>Guided Tour</h3>
+<ul>
+<li>Interactive 7-step walkthrough for new users</li>
+<li>Step-by-step navigation through all features</li>
+<li>Highlights specific UI elements with pulsing glow effect</li>
+<li>Auto-expands sections when relevant</li>
+<li>Skip or close tour at any time</li>
+<li>Positioned tooltip that doesn't obscure content</li>
+</ul>
+<h3>Theme Support</h3>
+<ul>
+<li>Light and dark mode toggle</li>
+<li>Sun/Moon icon indicator with enhanced contrast</li>
+<li>Consistent theming across all tabs</li>
+<li>Smooth gradient backgrounds</li>
+</ul>
+<h2>Quick Start</h2>
+<h3>Prerequisites</h3>
+<ul>
+<li>Node.js 16 or higher</li>
+<li>npm or yarn</li>
+<li>Chrome, Edge, or any Chromium-based browser</li>
+</ul>
+<h3>Installation</h3>
+<ol>
+<li>
+<p>Clone and Install</p>
+<pre class="prettyprint source lang-bash"><code>git clone https://github.com/YOUR_USERNAME/netstar-shield-prototype-1.git
+cd netstar-shield-prototype-1
+npm install
+</code></pre>
+</li>
+<li>
+<p>Start Development Server</p>
+<pre class="prettyprint source lang-bash"><code>npm run dev
+</code></pre>
+</li>
+<li>
+<p>Load in Browser</p>
+<ul>
+<li>Open <code>chrome://extensions/</code> (Chrome) or <code>edge://extensions/</code> (Edge)</li>
+<li>Enable &quot;Developer mode&quot; (toggle in top-right)</li>
+<li>Click &quot;Load unpacked&quot;</li>
+<li>Select the <code>dist</code> folder</li>
+</ul>
+</li>
+</ol>
+<h2>Development</h2>
+<h3>Development Mode with Hot Reload</h3>
+<pre class="prettyprint source lang-bash"><code>npm run dev
+</code></pre>
+<p>This starts the development server with hot module reloading. Any changes you make to the code will automatically update in the extension without manual reloading.</p>
+<h3>Building for Production</h3>
+<pre class="prettyprint source lang-bash"><code>npm run build
+</code></pre>
+<p>This command builds an optimized production version of the extension in the <code>dist</code> folder.</p>
+<h3>Project Structure</h3>
+<pre class="prettyprint source"><code>├── src/
+│   ├── manifest.json           # Chrome Extension manifest (Manifest V3)
+│   ├── background.js           # Background service worker
+│   ├── index.html              # Extension popup HTML
+│   ├── popup.jsx               # Main popup with tab navigation & tour
+│   ├── index.css               # Tailwind CSS styles with custom brand colors
+│   ├── icons/                  # Extension icons (16px, 48px, 128px)
+│   │   ├── icon*.png           # Standard extension icons
+│   │   ├── icon-safe-*.png     # Dynamic green safety icons
+│   │   ├── icon-warning-*.png  # Dynamic yellow warning icons
+│   │   └── icon-danger-*.png   # Dynamic red danger icons
+│   ├── components/
+│   │   ├── Tour.jsx            # Guided tour component
+│   │   ├── tabs/               # Tab components
+│   │   │   ├── HomeTab.jsx     # Home view with safety score
+│   │   │   ├── ScanTab.jsx     # Manual URL scanner
+│   │   │   ├── AlertsTab.jsx   # Security alerts
+│   │   │   ├── DetailsTab.jsx  # Detailed indicator view
+│   │   │   └── SettingsTab.jsx # Settings and help
+│   │   └── ui/                 # Reusable UI components (shadcn/ui)
+│   │       ├── badge.jsx
+│   │       ├── button.jsx
+│   │       ├── card.jsx
+│   │       ├── input.jsx
+│   │       └── progress.jsx
+│   └── lib/
+│       └── utils.js            # Utility functions (cn helper)
+├── dist/                       # Build output (auto-generated)
+├── vite.config.js              # Vite configuration
+├── components.json             # shadcn/ui configuration
+├── THEME_GUIDE.md              # Color scheme documentation
+└── DYNAMIC_ICONS_GUIDE.md      # Icon generation documentation
+</code></pre>
+<h2>Tech Stack</h2>
+<ul>
+<li><strong>React 19</strong> - UI framework with hooks</li>
+<li><strong>Vite 5</strong> - Lightning-fast build tool and dev server</li>
+<li><strong>@crxjs/vite-plugin</strong> - Hot module reloading for Chrome extensions</li>
+<li><strong>Tailwind CSS 4</strong> - Utility-first styling</li>
+<li><strong>shadcn/ui</strong> - High-quality accessible components</li>
+<li><strong>Radix UI</strong> - Unstyled accessible component primitives</li>
+<li><strong>Lucide React</strong> - Beautiful icon set</li>
+<li><strong>Chrome Extension API (Manifest V3)</strong> - Extension functionality</li>
+</ul>
+<h2>Extension Permissions</h2>
+<p>The extension requires the following permissions:</p>
+<ul>
+<li><code>activeTab</code> - Access current tab information for security analysis</li>
+<li><code>storage</code> - Save recent scans, preferences, and tour progress</li>
+<li><code>tabs</code> - Query tab information for auto-scanning</li>
+<li><code>&lt;all_urls&gt;</code> - Scan any website (host permissions)</li>
+</ul>
+<h2>Current Status</h2>
+<h3>Implemented Features</h3>
+<ul>
+<li>Full tab-based navigation (Home, Scan, Alerts, Settings)</li>
+<li>Details view with educational content</li>
+<li>Interactive guided tour system</li>
+<li>Light/dark theme toggle with persistent state</li>
+<li>Expandable security indicators</li>
+<li>Fixed-height responsive layout</li>
+<li>Dynamic icon system for different security states</li>
+<li>Comprehensive UI component library</li>
+</ul>
+<h3>Simulated Features</h3>
+<p>The following features are currently simulated for demonstration purposes:</p>
+<ul>
+<li>Security scoring algorithm</li>
+<li>URL scanning and analysis</li>
+<li>Threat detection</li>
+<li>Certificate validation</li>
+<li>Domain reputation checks</li>
+</ul>
+<h3>Known Limitations</h3>
+<ul>
+<li>Security data is currently hardcoded/simulated</li>
+<li>No real API integration for security scanning</li>
+<li>Icons change based on simulated data</li>
+<li>No persistent storage implementation yet</li>
+</ul>
+<h2>Future Enhancements</h2>
+<ul>
+<li>Real security API integration (Google Safe Browsing, VirusTotal)</li>
+<li>Automatic background scanning on page load</li>
+<li>Custom alert rules and notification preferences</li>
+<li>Export security reports as PDF/JSON</li>
+<li>Multi-language support</li>
+<li>Advanced privacy controls</li>
+<li>Security scan history with filtering</li>
+<li>Whitelist/blacklist management</li>
+<li>Performance optimizations</li>
+</ul>
+<h2>License</h2>
+<p>This project is licensed under the MIT License.</p>
+<h2>Acknowledgments</h2>
+<ul>
+<li>Built with <a href="https://ui.shadcn.com/">shadcn/ui</a> components</li>
+<li>Icons by <a href="https://lucide.dev/">Lucide</a></li>
+<li>Color system inspired by modern security practices</li>
+<li>UI/UX designed for accessibility and user-friendliness</li>
+</ul></article>
+    </section>
+
 
 
 
@@ -50,13 +265,13 @@
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Back%2520End.html">Back End</a></li><li><a href="module-Front%2520End.html">Front End</a></li><li><a href="module-Testing.html">Testing</a></li></ul><h3>Global</h3><ul><li><a href="global.html#EDUCATIONAL_CONTENT">EDUCATIONAL_CONTENT</a></li><li><a href="global.html#ThemeToggleIcon">ThemeToggleIcon</a></li><li><a href="global.html#getColorClasses">getColorClasses</a></li><li><a href="global.html#getDetailedStatusMessage">getDetailedStatusMessage</a></li><li><a href="global.html#getEducationalContent">getEducationalContent</a></li><li><a href="global.html#getStatusFromScore">getStatusFromScore</a></li><li><a href="global.html#getStatusInfo">getStatusInfo</a></li><li><a href="global.html#getStatusMessage">getStatusMessage</a></li><li><a href="global.html#themeValue">themeValue</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Back%2520End.html">Back End</a></li><li><a href="module-Front%2520End.html">Front End</a></li><li><a href="module-Testing.html">Testing</a></li></ul><h3>Global</h3><ul><li><a href="global.html#EDUCATIONAL_CONTENT">EDUCATIONAL_CONTENT</a></li><li><a href="global.html#INDICATOR_ICONS">INDICATOR_ICONS</a></li><li><a href="global.html#ThemeToggleIcon">ThemeToggleIcon</a></li><li><a href="global.html#getColorClasses">getColorClasses</a></li><li><a href="global.html#getDetailedStatusMessage">getDetailedStatusMessage</a></li><li><a href="global.html#getEducationalContent">getEducationalContent</a></li><li><a href="global.html#getStatusFromScore">getStatusFromScore</a></li><li><a href="global.html#getStatusInfo">getStatusInfo</a></li><li><a href="global.html#getStatusMessage">getStatusMessage</a></li><li><a href="global.html#themeValue">themeValue</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Thu Nov 13 2025 09:36:10 GMT-0700 (Mountain Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Fri Nov 14 2025 08:38:50 GMT-0700 (Mountain Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>
