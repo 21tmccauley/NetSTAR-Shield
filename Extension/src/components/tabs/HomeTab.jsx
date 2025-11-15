@@ -32,7 +32,11 @@ const INDICATOR_ICONS = {
   whois: FileUser,
 };
 
-// localStorage key used to remember whether "What We Checked" is open or closed across navigations/reloads
+
+/**
+ * It is the localStorage key used to remember whether "What We Checked" is open or closed across navigations/reloads
+ */
+
 const INDICATORS_OPEN_KEY = "indicatorsOpen";
 
 
@@ -41,8 +45,10 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   const [safetyScore, setSafetyScore] = useState(87); // Default value
   const [securityData, setSecurityData] = useState(null);
 
-  // Persist open/closed state in localStorage
-  // Persisted open/closed UI state initialized from localStorage (runs once on mount)
+
+  /**
+   * This is what checks the local storage to see whether the WWC section should be open or not. It runs on mount, meaning each time the tab is loaded.
+   */
   const [showIndicators, setShowIndicators] = useState(() => {
     try {
       if (typeof window === "undefined") return false;
@@ -53,13 +59,20 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     }
   });
 
-// If you want a tour or parent to force the open state, keep honoring it
-// Effective open state: allow an external prop (e.g., a guided tour) to override the user's persisted choice
+/**
+ * This variable is what allows the tour to open the WWC section for the tour. It does override the user's choice.
+ * This could also be used for a different parent to override it as well.
+ */
   const computedShowIndicators =
     forceShowIndicators ?? showIndicators;
 
   // Persist user-toggled state (do not persist the forced override)
   // Write the user's latest open/closed choice to localStorage whenever it changes
+
+  /**
+   * This writes the user's last open/closed choice to localStorage whenever it changes.
+   * It also does not allow the override from computedShowIndicators to persist/ go into the localStorage
+   */
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
@@ -73,7 +86,9 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     }
   }, [showIndicators]);
 
-  // Get current tab URL and security data (Chrome extension context)
+  /**
+   * This gets the current URL for the current tab and security data (Chrome extension context)
+   */
   useEffect(() => {
     if (typeof chrome !== "undefined" && chrome.runtime) {
       chrome.runtime.sendMessage({ action: "getCurrentTab" }, (response) => {
@@ -98,6 +113,12 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
   }, []);
 
   // Build indicators with icons + score (merge live score if provided), then sort by score asc
+
+  /**
+   * Creates a variable for the WWC categories
+   * Orders them by score, sorting from Lowest(Top) to Highest(Bottom)
+   * Creates map of WWC categories with their important values/data
+   */
   const indicators = DEFAULT_INDICATOR_DATA
   .sort(((a, b) => a.score - b.score))
     .map((data) => ({
@@ -106,12 +127,17 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
       icon: INDICATOR_ICONS[data.id],
     }))
 
-    // Toggle and persist the open/closed state unless a forced override is active
+
+    /**
+     * 
+     * This toggles the open/closed state in localStorage unless a forced override is active
+     */
   const handleToggleIndicators = () => {
     // If a forced value is provided (tour/demo), don't toggle the persisted state
     if (forceShowIndicators != null) return;
     setShowIndicators((openState) => !openState);
   };
+
   return (
     <div className="p-6">
       {/* Header with friendly greeting */}
