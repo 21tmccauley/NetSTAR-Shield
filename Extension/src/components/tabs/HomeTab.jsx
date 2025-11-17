@@ -73,6 +73,11 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     }
   }, [showIndicators]);
 
+  // Toggle indicators visibility
+  const handleToggleIndicators = () => {
+    setShowIndicators((prev) => !prev);
+  };
+
   // Get current tab URL and security data (Chrome extension context)
   useEffect(() => {
     if (typeof chrome !== "undefined" && chrome.runtime) {
@@ -90,14 +95,27 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
           } catch (e) {
             setCurrentUrl("this site");
           }
-
-          // Update safety score & data from background script if available
-          if (response.securityData && response.securityData.safetyScore) {
-            setSafetyScore(response.securityData.safetyScore);
-            setSecurityData(response.securityData);
+          
+          if (response.url) {
+            try {
+              const url = new URL(response.url);
+              setCurrentUrl(url.hostname);
+            } catch (e) {
+              setCurrentUrl("this site");
+            }
+            
+            // Update safety score from background script if available
+            if (response.securityData?.safetyScore !== undefined) {
+              setSafetyScore(response.securityData.safetyScore);
+              setSecurityData(response.securityData);
+            }
           }
+        } catch (error) {
+          console.error('Error getting current tab:', error);
         }
-      });
+      };
+      
+      getTabData();
     } else {
       setCurrentUrl("example.com");
     }
@@ -159,10 +177,9 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
       >
         <div className="text-center">
           <div className="inline-flex items-baseline gap-2 mb-2">
-            <span
-              className={`text-6xl font-bold bg-gradient-to-r ${
-                getColorClasses(getStatusFromScore(safetyScore)).gradient
-              } bg-clip-text text-transparent`}
+            <span 
+              key={`score-${safetyScore}`}
+              className={`text-6xl font-bold bg-gradient-to-r ${getColorClasses(getStatusFromScore(safetyScore)).gradient} bg-clip-text text-transparent`}
             >
               {safetyScore}
             </span>

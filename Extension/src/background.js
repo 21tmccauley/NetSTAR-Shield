@@ -16,7 +16,7 @@ const ICON_STATES = {
 const TEST_SCORE = null;
 
 // The TTL for the cache storing scan results.
-const CACHE_DURATION = 1000 * 5;
+const CACHE_DURATION = 1000 * 5 * 60; // 5 minutes
 
 // Function to check cache or scan
 async function getCachedOrScan(url) {
@@ -27,7 +27,6 @@ async function getCachedOrScan(url) {
   if (data[cacheKey]) {
     const cached = data[cacheKey];
     if (now - cached.timestamp < CACHE_DURATION) {
-      console.log(`Using cached scan for ${url}`);
       return cached;
     } else {
       await chrome.storage.local.remove(cacheKey);
@@ -63,7 +62,6 @@ function updateIcon(tabId, safetyScore) {
     }
   });
   
-  console.log(`Icon updated to ${iconState} (score: ${safetyScore})`);
 }
 
 // Listen for extension installation
@@ -93,7 +91,6 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// Updating recent scans storage
 function updateRecentScans(url, safetyScore) {
   let safeStatus = 'safe';
   if (safetyScore >= ICON_THRESHOLDS.SAFE) {
@@ -122,7 +119,6 @@ function updateRecentScans(url, safetyScore) {
 
     chrome.storage.local.set({recentScans: recent});
 
-    console.log('Updated recent scans');
   });
 }
 
@@ -131,12 +127,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     // Only scan if HTTP or HTTPS page
     if (!/^https?:\/\//i.test(tab.url)){
-      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
       return;
     }
     
     // Auto-scan the page and update icon
-    console.log('Tab updated:', tab.url);
     
     // Perform security scan
     const result = await getCachedOrScan(tab.url);
@@ -156,7 +150,6 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   if (tab.url) {
     // Only scan if HTTP or HTTPS
     if (!/^https?:\/\//i.test(tab.url)) {
-      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
       return;
     }
     const result = await getCachedOrScan(tab.url);
