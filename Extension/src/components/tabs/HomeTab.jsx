@@ -18,6 +18,7 @@ import { getColorClasses } from "@/lib/themeUtils";
 import { DEFAULT_INDICATOR_DATA } from "@/lib/constants";
 
 
+
 /**
  * INDICATOR_ICONS is the variable for each of the What We Checked(WWC) categories' icons
  */
