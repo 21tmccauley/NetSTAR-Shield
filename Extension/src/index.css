@@ -140,8 +140,8 @@
      ======================================================================== */
   
   /* Primary brand colors - main actions and highlights */
-  --primary: oklch(0.205 0 0);       /* Dark gray - primary buttons, links */
-  --primary-foreground: oklch(0.985 0 0); /* Near white - text on primary */
+  --primary: oklch(0.6023 0.1935 256.9);       /* Dark gray - primary buttons, links */
+  --primary-foreground: oklch(1.0000 0.0000 89.9); /* Near white - text on primary */
   
   /* Secondary colors - supporting actions */
   --secondary: oklch(0.97 0 0);      /* Very light gray - secondary backgrounds */
@@ -172,17 +172,17 @@
      ======================================================================== */
   
   /* Main brand color scale - Blue (adjust these to change primary color) */
-  --brand-50: oklch(0.97 0.01 250);     /* blue-50 - lightest backgrounds */
-  --brand-100: oklch(0.95 0.03 250);    /* blue-100 - light backgrounds */
-  --brand-200: oklch(0.90 0.06 250);    /* blue-200 - borders */
-  --brand-300: oklch(0.78 0.12 250);    /* blue-300 - text/icons */
-  --brand-400: oklch(0.65 0.16 250);    /* blue-400 - gradients */
-  --brand-500: oklch(0.55 0.20 250);    /* blue-500 - primary actions */
-  --brand-600: oklch(0.48 0.22 250);    /* blue-600 - hover states */
-  --brand-700: oklch(0.42 0.20 250);    /* blue-700 - active states */
-  --brand-800: oklch(0.35 0.16 250);    /* blue-800 - dark text */
-  --brand-900: oklch(0.28 0.12 255);    /* blue-900 - darker backgrounds */
-  --brand-950: oklch(0.20 0.10 255);    /* blue-950 - darkest backgrounds */
+  --brand-50: oklch(0.9540 0.0222 254.4);     /* blue-50 - lightest backgrounds */
+  --brand-100: oklch(0.8996 0.0493 255.9);    /* blue-100 - light backgrounds */
+  --brand-200: oklch(0.8185 0.0916 257.2);    /* blue-200 - borders */
+  --brand-300: oklch(0.7183 0.1376 257.6);    /* blue-300 - text/icons */
+  --brand-400: oklch(0.6507 0.1707 257.3);    /* blue-400 - gradients */
+  --brand-500: oklch(0.6023 0.1935 256.9);    /* blue-500 - primary actions */
+  --brand-600: oklch(0.5116 0.1642 257.5);    /* blue-600 - hover states */
+  --brand-700: oklch(0.4281 0.1328 257.1);    /* blue-700 - active states */
+  --brand-800: oklch(0.3454 0.1022 257.1);    /* blue-800 - dark text */
+  --brand-900: oklch(0.2664 0.0726 256.9);    /* blue-900 - darker backgrounds */
+  --brand-950: oklch(0.1941 0.0441 254.7);    /* blue-950 - darkest backgrounds */
   
   /* Accent color - Cyan (adjust these to change accent color) */
   --brand-accent-400: oklch(0.72 0.14 200);  /* cyan-400 - gradients */
@@ -231,7 +231,7 @@
      ======================================================================== */
   
   /* Inverted background and foreground for dark mode */
-  --background: oklch(0.145 0 0);     /* Dark gray - main background */
+  --background: oklch(0.9755 0.0045 258.3);     /* Dark gray - main background */
   --foreground: oklch(0.985 0 0);     /* Near white - main text color */
   
   /* ========================================================================
@@ -239,8 +239,8 @@
      ======================================================================== */
   
   /* Card component colors - slightly lighter than background */
-  --card: oklch(0.205 0 0);           /* Darker gray - card backgrounds */
-  --card-foreground: oklch(0.985 0 0); /* Light - text on cards */
+  --card: oklch(1.0000 0.0000 89.9);           /* Darker gray - card backgrounds */
+  --card-foreground: oklch(0.2350 0.0000 89.9); /* Light - text on cards */
   
   /* ========================================================================
      BRAND AND SEMANTIC COLORS (DARK MODE)
