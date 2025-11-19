@@ -17,6 +17,7 @@ import { getStatusFromScore, getStatusMessage } from "@/lib/securityUtils";
 import { getColorClasses } from "@/lib/themeUtils";
 import { DEFAULT_INDICATOR_DATA } from "@/lib/constants";
 
+
 /**
  * Mapping of indicator IDs to their corresponding icon components from lucide-react
  * @type {Object<string, React.ComponentType>}
@@ -250,6 +251,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     if (forceShowIndicators != null) return;
     setShowIndicators((openState) => !openState);
   };
+
   return (
     <div className="p-6">
       {/* Header with friendly greeting */}
