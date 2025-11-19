@@ -191,9 +191,12 @@ function Popup() {
               {tabs.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
+                const tabButtonId = tab.id === "scan" ? "scan-tab-button" : 
+                                   tab.id === "alerts" ? "alerts-tab-button" : null
                 return (
                   <button
                     key={tab.id}
+                    id={tabButtonId}
                     onClick={() => setActiveTab(tab.id)}
                     className={getTabButtonClasses(isActive)}
                   >

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docs": "jsdoc -c jsdoc.config.json",
+    "docs:watch": "jsdoc -c jsdoc.config.json --watch"
   },
   "dependencies": {
     "@radix-ui/react-progress": "1.1.1",
@@ -25,6 +27,7 @@
     "@tailwindcss/postcss": "^4.1.9",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.22",
+    "jsdoc": "^4.0.5",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "vite": "^5.4.21"
