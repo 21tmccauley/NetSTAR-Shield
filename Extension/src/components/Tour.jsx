@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { X, Settings } from "lucide-react"
+import { X, Settings, Search, Bell } from "lucide-react"
 import { ThemeToggleIcon } from "@/components/ThemeToggleIcon"
 
 // Constants for button highlight IDs
@@ -8,7 +8,9 @@ const HIGHLIGHT_IDS = {
   THEME_TOGGLE: "theme-toggle",
   SETTINGS_BUTTON: "settings-button",
   SECURITY_SCORE: "security-score",
-  SECURITY_INDICATORS: "security-indicators"
+  SECURITY_INDICATORS: "security-indicators",
+  SCAN_TAB_BUTTON: "scan-tab-button",
+  ALERTS_TAB_BUTTON: "alerts-tab-button"
 }
 
 export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepChange }) {
@@ -41,15 +43,15 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
       tab: "scan",
       title: "Scan Tab",
       description: "Use the Scan tab to manually check any URL for security threats before visiting it. Just paste a URL and click scan!",
-      highlightId: null,
-      position: "bottom"
+      highlightId: HIGHLIGHT_IDS.SCAN_TAB_BUTTON,
+      position: "top"
     },
     {
       tab: "alerts",
       title: "Alerts Tab",
       description: "The Alerts tab shows you important security warnings when we detect potential threats on a website you're visiting.",
-      highlightId: null,
-      position: "bottom"
+      highlightId: HIGHLIGHT_IDS.ALERTS_TAB_BUTTON,
+      position: "top"
     },
     {
       tab: "home",
@@ -69,7 +71,9 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
 
   const currentStepData = steps[currentStep]
   const isButtonHighlight = currentStepData?.highlightId === HIGHLIGHT_IDS.THEME_TOGGLE || 
-                            currentStepData?.highlightId === HIGHLIGHT_IDS.SETTINGS_BUTTON
+                            currentStepData?.highlightId === HIGHLIGHT_IDS.SETTINGS_BUTTON ||
+                            currentStepData?.highlightId === HIGHLIGHT_IDS.SCAN_TAB_BUTTON ||
+                            currentStepData?.highlightId === HIGHLIGHT_IDS.ALERTS_TAB_BUTTON
 
   // Navigate to the correct tab when step changes and notify parent
   useEffect(() => {
@@ -81,7 +85,51 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
     }
   }, [currentStep, isActive, currentStepData, currentTab, onNavigate, onStepChange])
 
-  // Calculate spotlight position for button highlights (steps 6 & 7)
+  // Auto-scroll to security indicators on step 3
+  useEffect(() => {
+    if (!isActive || currentStepData?.highlightId !== HIGHLIGHT_IDS.SECURITY_INDICATORS) {
+      return
+    }
+
+    // Wait for tab to switch and content to render
+    const scrollToIndicators = () => {
+      const element = document.getElementById(HIGHLIGHT_IDS.SECURITY_INDICATORS)
+      if (element) {
+        // Find the scrollable parent container
+        const scrollContainer = element.closest('.overflow-y-auto') || 
+                               element.closest('[class*="overflow"]') ||
+                               document.querySelector('.flex-1.overflow-y-auto')
+        
+        if (scrollContainer) {
+          // Calculate position relative to scroll container
+          const containerRect = scrollContainer.getBoundingClientRect()
+          const elementRect = element.getBoundingClientRect()
+          const scrollTop = scrollContainer.scrollTop
+          const elementTop = elementRect.top - containerRect.top + scrollTop
+          
+          // Scroll with smooth behavior, centering the element in view
+          scrollContainer.scrollTo({
+            top: elementTop - (containerRect.height / 2) + (elementRect.height / 2),
+            behavior: 'smooth'
+          })
+        } else {
+          // Fallback to scrollIntoView if no scroll container found
+          element.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          })
+        }
+      }
+    }
+
+    // Delay to ensure tab content is rendered
+    const timeout = setTimeout(scrollToIndicators, 300)
+    
+    return () => clearTimeout(timeout)
+  }, [currentStep, isActive, currentStepData, currentTab])
+
+  // Calculate spotlight position for button highlights (theme toggle, settings, and tab buttons)
   useEffect(() => {
     if (!isActive || !isButtonHighlight) {
       setSpotlightPos(null)
@@ -150,7 +198,7 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
       {/* Dark overlay */}
       <div className="fixed inset-0 bg-black/30 z-40" />
       
-      {/* Bright overlay buttons for steps 6 & 7 */}
+      {/* Bright overlay buttons for theme toggle, settings, and tab buttons */}
       {spotlightPos && isButtonHighlight && (
         <div
           className="fixed z-[45] pointer-events-none"
@@ -174,9 +222,13 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
           >
             {currentStepData.highlightId === HIGHLIGHT_IDS.THEME_TOGGLE ? (
               <ThemeToggleIcon mode={mode} />
-            ) : (
+            ) : currentStepData.highlightId === HIGHLIGHT_IDS.SETTINGS_BUTTON ? (
               <Settings className={`h-4 w-4 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`} />
-            )}
+            ) : currentStepData.highlightId === HIGHLIGHT_IDS.SCAN_TAB_BUTTON ? (
+              <Search className={`h-5 w-5 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`} />
+            ) : currentStepData.highlightId === HIGHLIGHT_IDS.ALERTS_TAB_BUTTON ? (
+              <Bell className={`h-5 w-5 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`} />
+            ) : null}
           </div>
         </div>
       )}
