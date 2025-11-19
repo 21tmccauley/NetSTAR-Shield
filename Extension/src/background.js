@@ -194,36 +194,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   
   if (request.action === 'getCurrentTab') {
-<<<<<<< HEAD
-    (async () => {
-      try {
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true});
-        if (tabs[0]) {
-          // Also send the current security score if available
-          const url = tabs[0].url;
-          // Check if URL is a valid URL to be scanned
-          if (!/^https?:\/\//i.test(url)) {
-            sendResponse({ url, title: tabs[0].title, securityData: null });
-            return;
-          }
-          const result = await getCachedOrScan(url);
-          sendResponse({ 
-            url, 
-            title: tabs[0].title,
-            securityData: result || null
-          });
-        } else {
-          sendResponse({ url: null, title: null, securityData: null });
-        }
-      } catch (error) {
-        console.error("Error in getCurrentTab:", error);
-        sendResponse({ error: true, message: error.message });
-      }
-    })();
-    
-    // Return true to indicate we will send a response asynchronously
-    return true;
-=======
     // If requestId is provided, we'll send response via message (don't keep channel open)
     if (request.requestId) {
       (async () => {
@@ -338,7 +308,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       })();
       return true; // Keep the message channel open for async response
     }
->>>>>>> origin/main
   }
   
   // Return false if we don't handle the message
