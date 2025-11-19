@@ -5,6 +5,35 @@ import { getStatusFromScore } from "@/lib/securityUtils"
 import { getStatusInfo } from "@/lib/themeUtils"
 import { getEducationalContent } from "@/lib/educationalContent"
 
+/**
+ * DetailsTab component - Displays detailed information about a specific security indicator
+ * 
+ * @component
+ * @memberof module:Front End
+ * @param {Object} props - Component props
+ * @param {string} props.mode - Current theme mode: "light" or "dark"
+ * @param {Function} props.onBack - Callback function to navigate back to the previous tab
+ * @param {Object} props.indicator - Security indicator data object
+ * @param {string} props.indicator.id - Unique identifier for the indicator
+ * @param {string} props.indicator.name - Display name of the indicator
+ * @param {number} props.indicator.score - Security score for this indicator (0-100)
+ * @param {string} [props.indicator.status] - Status string: "excellent", "good", "moderate", or "poor"
+ * @returns {JSX.Element} The rendered DetailsTab component
+ * 
+ * @example
+ * ```jsx
+ * <DetailsTab 
+ *   mode="dark" 
+ *   onBack={() => setActiveTab("home")}
+ *   indicator={{
+ *     id: "cert",
+ *     name: "Certificate Health",
+ *     score: 95,
+ *     status: "excellent"
+ *   }}
+ * />
+ * ```
+ */
 export function DetailsTab({ mode, onBack, indicator }) {
   const status = indicator?.status || getStatusFromScore(indicator?.score || 100)
   const statusInfo = getStatusInfo(status)

@@ -4,12 +4,46 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Search, Shield, Sparkles, AlertCircle, X } from "lucide-react"
 
+/**
+ * ScanTab component - Allows users to manually scan a website for security analysis
+ * 
+ * @component
+ * @memberof module:Front End
+ * @param {Object} props - Component props
+ * @param {string} props.mode - Current theme mode: "light" or "dark"
+ * @param {Function} props.onScanComplete - Callback function called when a scan completes successfully
+ * @param {string} props.onScanComplete.url - The URL that was scanned
+ * @returns {JSX.Element} The rendered ScanTab component
+ * 
+ * @example
+ * ```jsx
+ * <ScanTab 
+ *   mode="dark" 
+ *   onScanComplete={(url) => {
+ *     setActiveTab("home");
+ *     console.log("Scanned:", url);
+ *   }}
+ * />
+ * ```
+ */
 export function ScanTab({ mode, onScanComplete }) {
+  /** URL input value for the scan */
   const [scanUrl, setScanUrl] = useState("")
+  
+  /** Whether a scan is currently in progress */
   const [isScanning, setIsScanning] = useState(false)
+  
+  /** Array of recently scanned sites from Chrome storage */
   const [recentScans, setRecentScans] = useState([]);
+  
+  /** Error message to display if scan fails */
   const [errorMessage, setErrorMessage] = useState(null);
 
+  /**
+   * Effect to load recent scans from Chrome storage and listen for updates
+   * Updates the recent scans list when storage changes
+   * @memberof module:Front End~ScanTab
+   */
   useEffect(() => {
     chrome.storage.local.get("recentScans", (data) => {
       if (data.recentScans) {
@@ -24,6 +58,13 @@ export function ScanTab({ mode, onScanComplete }) {
     });
   }, []);
   
+  /**
+   * Handler function to initiate a security scan for the entered URL
+   * Sends a message to the background script to perform the scan
+   * Handles error responses and navigates on successful scan
+   * @memberof module:Front End~ScanTab
+   * @function handleScan
+   */
   const handleScan = () => {
     if (!scanUrl || isScanning) return
     setIsScanning(true)
@@ -48,6 +89,13 @@ export function ScanTab({ mode, onScanComplete }) {
     );
   };
 
+  /**
+   * Handler function for keyboard events on the URL input
+   * Triggers scan when Enter key is pressed
+   * @memberof module:Front End~ScanTab
+   * @function handleKeyDown
+   * @param {KeyboardEvent} e - Keyboard event object
+   */
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       handleScan()
