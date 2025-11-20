@@ -159,27 +159,37 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 // Message handler for communication with popup
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Handle async operations properly to avoid message port errors
   if (request.action === 'scanUrl') {
-    // Make sure manually entered websites have a TLD
-    if (!/\.[a-z]{2,}/i.test(request.url)) {
-      sendResponse({ error: true, message: "Invalid URL. Please enter a valid website address with a top-level domain (e.g., .com, .org, .net)" });
-      return true;
-    }
+    (async () => {
+      try {
+        // Make sure manually entered websites have a TLD
+        if (!/\.[a-z]{2,}/i.test(request.url)) {
+          console.log("Invalid URL entered:", request.url);
+          sendResponse({ error: true, message: "Invalid URL. Please enter a valid website address with a top-level domain (e.g., .com, .org, .net)" });
+          return;
+        }
 
-    // Simulate security scan
-    const result = await getCachedOrScan(request.url);
+        // Simulate security scan
+        const result = await getCachedOrScan(request.url);
+        
+        // Update icon if this is for the current tab
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tabs[0]) {
+          updateIcon(tabs[0].id, result.safetyScore);     
+          // Update the recently scanned
+          updateRecentScans(request.url, result.safetyScore);
+        }
+          
+        sendResponse(result);
+      } catch (error) {
+        console.error("Error in scanUrl:", error);
+        sendResponse({ error: true, message: error.message });
+      }
+    })();
     
-    // Update icon if this is for the current tab
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs[0]) {
-      updateIcon(tabs[0].id, result.safetyScore);     
-      // Update the recently scanned
-      updateRecentScans(request.url, result.safetyScore);
-    }
-      
-    sendResponse(result);
-    
+    // Return true to indicate we will send a response asynchronously
     return true;
   }
   
@@ -300,8 +310,34 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     }
   }
   
-  return true;
+  // Return false if we don't handle the message
+  return false;
 });
+
+// Helper function to determine status from score
+function getStatusFromScore(score) {
+  if (score >= 90) return "excellent";
+  if (score >= 75) return "good";
+  if (score >= 60) return "moderate";
+  return "poor";
+}
+
+// Generate random score with weighted distribution (favors higher scores)
+function generateRandomScore(biasTowardHigh = true) {
+  const random = Math.random();
+  
+  if (biasTowardHigh) {
+    // 70% chance of good scores (60-100), 30% chance of lower scores (30-79)
+    if (random > 0.3) {
+      return Math.floor(Math.random() * 41) + 60; // 60-100
+    } else {
+      return Math.floor(Math.random() * 50) + 30; // 30-79
+    }
+  } else {
+    // Uniform distribution
+    return Math.floor(Math.random() * 101); // 0-100
+  }
+}
 
 // Simulated security scan function
 async function performSecurityScan(url) {
@@ -328,17 +364,61 @@ async function performSecurityScan(url) {
     }
   }
   
+  // Generate random scores for each indicator
+  // Using URL as a seed to ensure same URL gets same scores (via caching)
+  const indicators = [
+    { 
+      id: "cert", 
+      name: "Certificate Health", 
+      score: generateRandomScore(true),
+      status: null // Will be set below
+    },
+    { 
+      id: "connection", 
+      name: "Connection Security", 
+      score: generateRandomScore(true),
+      status: null
+    },
+    { 
+      id: "domain", 
+      name: "Domain Reputation", 
+      score: generateRandomScore(true),
+      status: null
+    },
+    { 
+      id: "credentials", 
+      name: "Credential Safety", 
+      score: generateRandomScore(true),
+      status: null
+    },
+    { 
+      id: "ip", 
+      name: "IP Reputation", 
+      score: generateRandomScore(true),
+      status: null
+    },
+    { 
+      id: "dns", 
+      name: "DNS Record Health", 
+      score: generateRandomScore(true),
+      status: null
+    },
+    { 
+      id: "whois", 
+      name: "WHOIS Pattern", 
+      score: generateRandomScore(true),
+      status: null
+    }
+  ];
+  
+  // Calculate status for each indicator based on its score
+  indicators.forEach(indicator => {
+    indicator.status = getStatusFromScore(indicator.score);
+  });
+  
   return {
     safetyScore: safetyScore,
-    indicators: [
-      { id: "cert", name: "Certificate Health", score: 95, status: "excellent" },
-      { id: "connection", name: "Connection Security", score: 100, status: "excellent" },
-      { id: "domain", name: "Domain Reputation", score: 78, status: "good" },
-      { id: "credentials", name: "Credential Safety", score: 85, status: "good" },
-      { id: "ip", name: "IP Reputation", score: 92, status: "excellent" },
-      { id: "dns", name: "DNS Record Health", score: 88, status: "good" },
-      { id: "whois", name: "WHOIS Pattern", score: 71, status: "moderate" }
-    ],
+    indicators: indicators,
     timestamp: Date.now()
   };
 }

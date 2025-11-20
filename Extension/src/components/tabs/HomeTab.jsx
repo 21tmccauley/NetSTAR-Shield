@@ -222,23 +222,24 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     }
   }, []);
 
-  /**
-   * Builds indicator list by merging default indicator data with live security scan data
-   * Maps indicator IDs to icons and merges scores from securityData when available
-   * Sorts indicators by score in ascending order (lowest scores first)
-   * @type {Array<Object>}
-   * @property {string} id - Indicator identifier
-   * @property {string} name - Display name for the indicator
-   * @property {number} score - Security score (0-100)
-   * @property {React.ComponentType} icon - Icon component for the indicator
-   * @memberof module:Front End~HomeTab
-   */
+  // Build indicators with icons + score (merge live score if provided), then sort by score asc
+  // Convert indicators array to object for easier lookup by id
+  const indicatorsLookup = securityData?.indicators?.reduce((acc, indicator) => {
+    acc[indicator.id] = indicator;
+    return acc;
+  }, {}) || {};
+
   const indicators = DEFAULT_INDICATOR_DATA
-  .sort(((a, b) => a.score - b.score))
-    .map((data) => ({
-      ...data,
-      icon: INDICATOR_ICONS[data.id]
-    }))
+    .map((data) => {
+      const liveIndicator = indicatorsLookup[data.id];
+      return {
+        ...data,
+        score: liveIndicator?.score ?? data.score ?? 0,
+        status: liveIndicator?.status ?? getStatusFromScore(data.score ?? 0),
+        icon: INDICATOR_ICONS[data.id],
+      };
+    })
+    .sort((a, b) => a.score - b.score);
 
   /**
    * Handler function to toggle the visibility of the "What We Checked" indicators section
