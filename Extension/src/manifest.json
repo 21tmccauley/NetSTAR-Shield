@@ -35,7 +35,8 @@
         "src/icons/icon-warning-128.png",
         "src/icons/icon-danger-16.png",
         "src/icons/icon-danger-48.png",
-        "src/icons/icon-danger-128.png"
+        "src/icons/icon-danger-128.png",
+        "alert.html"
       ],
       "matches": ["<all_urls>"]
     }

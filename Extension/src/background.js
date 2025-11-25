@@ -13,7 +13,7 @@ const ICON_STATES = {
 
 // TESTING: Set a specific score here (null = random scores)
 // Examples: 95 (green), 70 (amber), 45 (red), null (random)
-const TEST_SCORE = null;
+const TEST_SCORE = 45;
 
 // The TTL for the cache storing scan results.
 const CACHE_DURATION = 1000 * 5 * 60; // 5 minutes
@@ -61,8 +61,19 @@ function updateIcon(tabId, safetyScore) {
       128: iconPath(128)
     }
   });
-  
 }
+
+function openAlertWindow() {
+  const url = chrome.runtime.getURL("alert.html"); // points to your alert.html
+  chrome.windows.create({
+    url,
+    type: "popup",
+    width: 400,
+    height: 400,
+    focused: true,
+  });
+}
+
 
 // Listen for extension installation
 chrome.runtime.onInstalled.addListener(() => {
@@ -122,9 +133,26 @@ function updateRecentScans(url, safetyScore) {
   });
 }
 
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "openPopupHomeTab") {
+    // Opens the popup on HomeTab
+    chrome.action.openPopup(() => {
+      // optionally send a message to popup to force HomeTab active
+      chrome.runtime.sendMessage({ action: "forceHomeTab" });
+    });
+  }
+});
+
 // Listen for tab updates to auto-scan current page
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
+
+    const win = await chrome.windows.get(tab.windowId);
+    if (win.type === "popup") {
+      console.log("Skipping scan: popup window");
+      return;
+    }
+
     // Only scan if HTTP or HTTPS page
     if (!/^https?:\/\//i.test(tab.url)){
       return;
@@ -141,6 +169,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     // Update recently scanned
     updateRecentScans(tab.url, result.safetyScore);
 
+    if (result.safetyScore < ICON_THRESHOLDS.WARNING) {
+      openAlertWindow();
+    }
+
   }
 });
 
@@ -148,6 +180,12 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const tab = await chrome.tabs.get(activeInfo.tabId);
   if (tab.url) {
+    const win = await chrome.windows.get(tab.windowId);
+    if (win.type === "popup") {
+      console.log("Skipping scan: popup window");
+      return;
+    }
+
     // Only scan if HTTP or HTTPS
     if (!/^https?:\/\//i.test(tab.url)) {
       return;
@@ -155,6 +193,9 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     const result = await getCachedOrScan(tab.url);
     updateIcon(activeInfo.tabId, result.safetyScore);
     updateRecentScans(tab.url, result.safetyScore);
+    if (result.safetyScore < ICON_THRESHOLDS.WARNING) {
+      openAlertWindow();
+    }
   }
 });
 

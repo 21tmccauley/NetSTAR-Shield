@@ -78,6 +78,14 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators }) {
     setShowIndicators((prev) => !prev);
   };
 
+  useEffect(() => {
+    chrome.runtime.onMessage.addListener((request) => {
+      if (request.action === "forceHomeTab") {
+        setActiveTab("home");
+      }
+    });
+  }, []);
+
   // Get current tab URL and security data (Chrome extension context)
   useEffect(() => {
     // Get current tab URL and security data
