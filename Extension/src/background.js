@@ -64,7 +64,7 @@ function updateIcon(tabId, safetyScore) {
 }
 
 function openAlertWindow() {
-  const url = chrome.runtime.getURL("alert.html"); // points to your alert.html
+  const url = chrome.runtime.getURL("src/alert.html"); // points to your alert.html
   chrome.windows.create({
     url,
     type: "popup",
