@@ -141,6 +141,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     // Update recently scanned
     updateRecentScans(tab.url, result.safetyScore);
 
+    maybeShowRiskNotification(tabId, tab.url, result.safetyScore)
   }
 });
 
@@ -342,3 +343,88 @@ async function performSecurityScan(url) {
     timestamp: Date.now()
   };
 }
+
+
+// Source - https://stackoverflow.com/a
+// Posted by pythonNovice
+// Retrieved 2025-11-20, License - CC BY-SA 4.0
+
+function getNotificationPermission() {
+  chrome.permissions.contains({
+  permissions: ['notifications'],
+  }, (result) => {
+    if (result) {
+      // The extension has the permissions.
+      console.log(result)
+      console.log("the extension has notification permissions")
+    } else {
+      // The extension doesn't have the permissions.
+      console.log("the extension does not have notification permissions")
+    }
+  });
+
+  chrome.permissions.request(
+    { permissions: ["notifications"] },
+    (granted) => {
+      if (chrome.runtime.lastError) {
+        console.error("Permission request error:", chrome.runtime.lastError);
+        return;
+      }
+
+      // Persist the choice so you can respect it later
+      chrome.storage.local.set({ notificationsEnabled: granted });
+
+      if (granted) {
+        console.log("Notifications permission granted");
+      } else {
+        console.log("Notifications permission denied");
+      }
+    }
+  );
+}
+
+
+
+async function maybeShowRiskNotification(tabId, url, safetyScore) {
+  // Only notify when score is below WARNING (i.e., "danger" state)
+  if (safetyScore >= ALERT_THRESHOLDS.WARNING) return;
+
+  // Respect stored user setting
+  const { settings } = await chrome.storage.local.get("settings");
+  if (!settings || settings.notifications === false) {
+    return;
+  }
+
+  const hasPermission = await ensureNotificationPermission();
+  if (!hasPermission) return;
+
+  chrome.notifications.create(
+    `risky-site-${Date.now()}`, // unique ID so multiple can appear
+    {
+      type: "basic",
+      iconUrl: "src/icons/icon-danger-128.png", // must exist in your extension
+      title: "Risky site detected",
+      message: `This page scored ${safetyScore}/100.\nURL: ${url}`,
+      priority: 2
+    },
+    () => {
+      if (chrome.runtime.lastError) {
+        console.error("Notification error:", chrome.runtime.lastError);
+      }
+    }
+  );
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.notifications.create("test", {
+    type: "basic",
+    iconUrl: "src/icons/icon-safe-128.png",
+    title: "Test notification",
+    message: "If you see this, notifications are working!",
+    priority: 1,
+  }, () => {
+    if (chrome.runtime.lastError) {
+      console.error(chrome.runtime.lastError);
+    }
+  });
+});
