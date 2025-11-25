@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: components/tabs/DetailsTab.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: components/tabs/DetailsTab.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Lock, Info } from "lucide-react"
+import { getStatusFromScore } from "@/lib/securityUtils"
+import { getStatusInfo } from "@/lib/themeUtils"
+import { getEducationalContent } from "@/lib/educationalContent"
+
+/**
+ * DetailsTab component - Displays detailed information about a specific security indicator
+ * 
+ * @component
+ * @memberof module:Front End
+ * @param {Object} props - Component props
+ * @param {string} props.mode - Current theme mode: "light" or "dark"
+ * @param {Function} props.onBack - Callback function to navigate back to the previous tab
+ * @param {Object} props.indicator - Security indicator data object
+ * @param {string} props.indicator.id - Unique identifier for the indicator
+ * @param {string} props.indicator.name - Display name of the indicator
+ * @param {number} props.indicator.score - Security score for this indicator (0-100)
+ * @param {string} [props.indicator.status] - Status string: "excellent", "good", "moderate", or "poor"
+ * @returns {JSX.Element} The rendered DetailsTab component
+ * 
+ * @example
+ * ```jsx
+ * &lt;DetailsTab 
+ *   mode="dark" 
+ *   onBack={() => setActiveTab("home")}
+ *   indicator={{
+ *     id: "cert",
+ *     name: "Certificate Health",
+ *     score: 95,
+ *     status: "excellent"
+ *   }}
+ * />
+ * ```
+ */
+export function DetailsTab({ mode, onBack, indicator }) {
+  const status = indicator?.status || getStatusFromScore(indicator?.score || 100)
+  const statusInfo = getStatusInfo(status)
+  const educationalItems = getEducationalContent(indicator?.id)
+
+  return (
+    &lt;div className="p-6">
+      &lt;Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={onBack} 
+        className={`mb-4 ${mode === "dark" ? "text-slate-200 hover:text-white" : "text-slate-700 hover:text-slate-900"}`}
+      >
+        ← Back
+      &lt;/Button>
+
+      {/* Friendly detailed card */}
+      &lt;div className={`rounded-2xl p-5 mb-4 bg-gradient-to-br ${statusInfo.bgGradient}`}>
+        &lt;div className="flex items-center gap-3 mb-4">
+          &lt;div className={`p-3 rounded-xl ${statusInfo.iconBg}`}>
+            &lt;Lock className={`h-6 w-6 ${statusInfo.iconColor}`} />
+          &lt;/div>
+          &lt;div>
+            &lt;h3 className={`font-bold text-lg ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
+              {indicator?.name || "Connection Security"}
+            &lt;/h3>
+            &lt;p className={`text-sm ${statusInfo.textColor}`}>
+              {statusInfo.message}
+            &lt;/p>
+          &lt;/div>
+        &lt;/div>
+
+        &lt;div className="flex items-center gap-3 mb-4">
+          &lt;div className={`text-4xl font-bold ${statusInfo.scoreColor}`}>
+            {indicator?.score || 100}
+          &lt;/div>
+          &lt;Badge className={`${statusInfo.badgeBg} text-white`}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          &lt;/Badge>
+        &lt;/div>
+      &lt;/div>
+
+      {/* Educational insights */}
+      &lt;div className="space-y-3">
+        &lt;h4
+          className={`text-sm font-semibold flex items-center gap-2 ${mode === "dark" ? "text-white" : "text-brand-800"}`}
+        >
+          &lt;Info className="h-4 w-4" />
+          What This Means
+        &lt;/h4>
+
+        {educationalItems.map((item, index) => (
+          &lt;div key={index} className={`p-4 rounded-xl ${mode === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
+            &lt;div className="flex gap-3">
+              &lt;div>
+                &lt;div className={`text-sm font-medium mb-1 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
+                  {item.title}
+                &lt;/div>
+                &lt;div className={`text-xs ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>
+                  {item.description}
+                &lt;/div>
+              &lt;/div>
+            &lt;/div>
+          &lt;/div>
+        ))}
+      &lt;/div>
+    &lt;/div>
+  )
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Back%2520End.html">Back End</a></li><li><a href="module-Front%2520End.html">Front End</a></li><li><a href="module-Testing.html">Testing</a></li></ul><h3>Global</h3><ul><li><a href="global.html#EDUCATIONAL_CONTENT">EDUCATIONAL_CONTENT</a></li><li><a href="global.html#ThemeToggleIcon">ThemeToggleIcon</a></li><li><a href="global.html#getColorClasses">getColorClasses</a></li><li><a href="global.html#getDetailedStatusMessage">getDetailedStatusMessage</a></li><li><a href="global.html#getEducationalContent">getEducationalContent</a></li><li><a href="global.html#getStatusFromScore">getStatusFromScore</a></li><li><a href="global.html#getStatusInfo">getStatusInfo</a></li><li><a href="global.html#getStatusMessage">getStatusMessage</a></li><li><a href="global.html#themeValue">themeValue</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Fri Nov 14 2025 09:14:54 GMT-0700 (Mountain Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

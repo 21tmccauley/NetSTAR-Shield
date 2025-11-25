@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: components/tabs/ScanTab.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: components/tabs/ScanTab.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Search, Shield, Sparkles, AlertCircle, X } from "lucide-react"
+
+/**
+ * ScanTab component - Allows users to manually scan a website for security analysis
+ * 
+ * @component
+ * @memberof module:Front End
+ * @param {Object} props - Component props
+ * @param {string} props.mode - Current theme mode: "light" or "dark"
+ * @param {Function} props.onScanComplete - Callback function called when a scan completes successfully
+ * @param {string} props.onScanComplete.url - The URL that was scanned
+ * @returns {JSX.Element} The rendered ScanTab component
+ * 
+ * @example
+ * ```jsx
+ * &lt;ScanTab 
+ *   mode="dark" 
+ *   onScanComplete={(url) => {
+ *     setActiveTab("home");
+ *     console.log("Scanned:", url);
+ *   }}
+ * />
+ * ```
+ */
+export function ScanTab({ mode, onScanComplete }) {
+  /** URL input value for the scan */
+  const [scanUrl, setScanUrl] = useState("")
+  
+  /** Whether a scan is currently in progress */
+  const [isScanning, setIsScanning] = useState(false)
+  
+  /** Array of recently scanned sites from Chrome storage */
+  const [recentScans, setRecentScans] = useState([]);
+  
+  /** Error message to display if scan fails */
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  /**
+   * Effect to load recent scans from Chrome storage and listen for updates
+   * Updates the recent scans list when storage changes
+   * @memberof module:Front End~ScanTab
+   */
+  useEffect(() => {
+    chrome.storage.local.get("recentScans", (data) => {
+      if (data.recentScans) {
+        setRecentScans(data.recentScans);
+      }
+    });
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" &amp;&amp; changes.recentScans) {
+        setRecentScans(changes.recentScans.newValue || []);
+      }
+    });
+  }, []);
+  
+  /**
+   * Handler function to initiate a security scan for the entered URL
+   * Sends a message to the background script to perform the scan
+   * Handles error responses and navigates on successful scan
+   * @memberof module:Front End~ScanTab
+   * @function handleScan
+   */
+  const handleScan = () => {
+    if (!scanUrl || isScanning) return
+    setIsScanning(true)
+    setErrorMessage(null) // Clear any previous error
+
+    chrome.runtime.sendMessage(
+      { action: "scanUrl", url:scanUrl },
+      (result) => {
+        setIsScanning(false);
+
+        // Check if there's an error response
+        if (result &amp;&amp; result.error) {
+          setErrorMessage(result.message || "Invalid URL. Please enter a valid website address.");
+          return; // Don't navigate away, stay on scan tab
+        }
+
+        // Only navigate to home if scan was successful
+        if (onScanComplete &amp;&amp; result &amp;&amp; !result.error) {
+          onScanComplete(scanUrl);
+        }
+      }
+    );
+  };
+
+  /**
+   * Handler function for keyboard events on the URL input
+   * Triggers scan when Enter key is pressed
+   * @memberof module:Front End~ScanTab
+   * @function handleKeyDown
+   * @param {KeyboardEvent} e - Keyboard event object
+   */
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleScan()
+    }
+  }
+
+  return (
+    &lt;div className="p-6">
+      &lt;div className="text-center mb-6">
+        &lt;div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-brand-400 to-brand-accent-400 mb-3">
+          &lt;Search className="h-8 w-8 text-white" />
+        &lt;/div>
+        &lt;h2 className={`font-bold text-xl mb-1 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
+          Let's Check a Website
+        &lt;/h2>
+        &lt;p className={`text-sm ${mode === "dark" ? "text-slate-200" : "text-brand-600"}`}>
+          We'll help you stay safe online
+        &lt;/p>
+      &lt;/div>
+
+      &lt;div className="space-y-4">
+        &lt;div>
+          &lt;label
+            className={`text-sm font-medium mb-2 block ${mode === "dark" ? "text-white" : "text-brand-800"}`}
+          >
+            Website address
+          &lt;/label>
+          &lt;Input
+            type="text"
+            placeholder="https://example.com"
+            value={scanUrl}
+            onChange={(e) => {
+              setScanUrl(e.target.value)
+              setErrorMessage(null) // Clear error when user types
+            }}
+            onKeyDown={handleKeyDown}
+            className={`rounded-xl ${mode === "dark" ? "bg-slate-800 border-slate-700 text-white" : "border-brand-200 text-slate-900"}`}
+          />
+          &lt;p className={`text-xs mt-2 ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>
+            Tip: You can paste any URL or IP address
+          &lt;/p>
+        &lt;/div>
+
+        {/* Error Warning Message */}
+        {errorMessage &amp;&amp; (
+          &lt;div
+            className={`p-4 rounded-xl border-2 ${
+              mode === "dark"
+                ? "bg-amber-900/20 border-amber-500/50"
+                : "bg-amber-50 border-amber-300"
+            }`}
+          >
+            &lt;div className="flex items-start gap-3">
+              &lt;AlertCircle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
+                mode === "dark" ? "text-amber-400" : "text-amber-600"
+              }`} />
+              &lt;div className="flex-1">
+                &lt;p className={`text-sm font-medium ${
+                  mode === "dark" ? "text-amber-300" : "text-amber-800"
+                }`}>
+                  Invalid URL
+                &lt;/p>
+                &lt;p className={`text-xs mt-1 ${
+                  mode === "dark" ? "text-amber-200" : "text-amber-700"
+                }`}>
+                  {errorMessage}
+                &lt;/p>
+              &lt;/div>
+              &lt;button
+                onClick={() => setErrorMessage(null)}
+                className={`flex-shrink-0 p-1 rounded-full hover:bg-opacity-20 ${
+                  mode === "dark"
+                    ? "text-amber-300 hover:bg-amber-500"
+                    : "text-amber-600 hover:bg-amber-200"
+                }`}
+              >
+                &lt;X className="h-4 w-4" />
+              &lt;/button>
+            &lt;/div>
+          &lt;/div>
+        )}
+
+        {!isScanning ? (
+          &lt;Button
+            className="w-full bg-gradient-to-r from-brand-500 to-brand-accent-500 hover:from-brand-600 hover:to-brand-accent-500 text-white rounded-xl"
+            onClick={handleScan}
+            disabled={!scanUrl}
+          >
+            &lt;Shield className="h-4 w-4 mr-2" />
+            Check This Site
+          &lt;/Button>
+        ) : (
+          &lt;div
+            className={`p-8 rounded-2xl ${mode === "dark" ? "bg-gradient-to-br from-brand-900/30 to-brand-accent-500/20" : "bg-gradient-to-br from-brand-100 to-brand-accent-400/20"}`}
+          >
+            &lt;div className="flex flex-col items-center gap-4">
+              &lt;div className="relative w-20 h-20">
+                &lt;div className="absolute inset-0 bg-gradient-to-r from-brand-500 to-brand-accent-500 rounded-full opacity-20 animate-ping">&lt;/div>
+                &lt;div className="absolute inset-0 bg-gradient-to-r from-brand-500 to-brand-accent-500 rounded-full opacity-75 animate-pulse">&lt;/div>
+                &lt;div className="absolute inset-0 flex items-center justify-center">
+                  &lt;Sparkles className="h-8 w-8 text-white" />
+                &lt;/div>
+              &lt;/div>
+              &lt;div className="text-center">
+                &lt;div className={`font-medium ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
+                  Checking security...
+                &lt;/div>
+                &lt;div className={`text-sm ${mode === "dark" ? "text-slate-200" : "text-brand-600"}`}>
+                  This will just take a moment
+                &lt;/div>
+              &lt;/div>
+            &lt;/div>
+          &lt;/div>
+        )}
+
+{/* Recently checked sites dynamically from storage */}
+&lt;div className="mt-6">
+  &lt;h3
+    className={`text-sm font-semibold mb-3 ${
+      mode === "dark" ? "text-white" : "text-brand-800"
+    }`}
+  >
+    Recently Checked
+  &lt;/h3>
+
+  {recentScans.length === 0 ? (
+    &lt;p
+      className={`text-sm italic ${
+        mode === "dark" ? "text-slate-400" : "text-slate-600"
+      }`}
+    >
+      No sites checked yet
+    &lt;/p>
+  ) : (
+    &lt;div className="space-y-2">
+      {recentScans.reverse().map((site) => (
+        &lt;button
+          key={site.url}
+          className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.02] ${
+            mode === "dark"
+              ? "bg-slate-800/50 hover:bg-slate-800"
+              : "bg-white hover:shadow-md"
+          }`}
+          onClick={() => setScanUrl(site.url.startsWith("http") ? site.url : `https://${site.url}`)}
+        >
+          &lt;span
+            className={`text-sm flex-1 text-left ${
+              mode === "dark" ? "text-white" : "text-slate-900"
+            }`}
+          >
+            {site.url.match(/^(?:https?:\/\/)?([^\/]+)/)?.[1] || site.url}
+          &lt;/span>
+          &lt;Badge
+            className={`text-xs font-medium px-2 py-1 rounded-full ${
+              site.safe === "safe"
+                ? "bg-green-100 text-green-800 border-green-300"
+                : site.safe === "warning"
+                ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+                : "bg-red-100 text-red-800 border-red-300"
+            }`}
+          >
+            {site.safe === "safe"
+              ? "Safe"
+              : site.safe === "warning"
+              ? "Warning"
+              : "Danger"}
+          &lt;/Badge>
+        &lt;/button>
+      ))}
+    &lt;/div>
+  )}
+&lt;/div>
+
+      &lt;/div>
+    &lt;/div>
+  )
+}
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Back%2520End.html">Back End</a></li><li><a href="module-Front%2520End.html">Front End</a></li><li><a href="module-Testing.html">Testing</a></li></ul><h3>Global</h3><ul><li><a href="global.html#EDUCATIONAL_CONTENT">EDUCATIONAL_CONTENT</a></li><li><a href="global.html#ThemeToggleIcon">ThemeToggleIcon</a></li><li><a href="global.html#getColorClasses">getColorClasses</a></li><li><a href="global.html#getDetailedStatusMessage">getDetailedStatusMessage</a></li><li><a href="global.html#getEducationalContent">getEducationalContent</a></li><li><a href="global.html#getStatusFromScore">getStatusFromScore</a></li><li><a href="global.html#getStatusInfo">getStatusInfo</a></li><li><a href="global.html#getStatusMessage">getStatusMessage</a></li><li><a href="global.html#themeValue">themeValue</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Fri Nov 14 2025 09:14:54 GMT-0700 (Mountain Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

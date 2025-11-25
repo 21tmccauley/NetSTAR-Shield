@@ -15,6 +15,29 @@ const ICON_STATES = {
 // Examples: 95 (green), 70 (amber), 45 (red), null (random)
 const TEST_SCORE = null;
 
+// The TTL for the cache storing scan results.
+const CACHE_DURATION = 1000 * 5 * 60; // 5 minutes
+
+// Function to check cache or scan
+async function getCachedOrScan(url) {
+  const cacheKey = `scan_${encodeURIComponent(url)}`;
+  const data = await chrome.storage.local.get(cacheKey);
+  const now = Date.now();
+
+  if (data[cacheKey]) {
+    const cached = data[cacheKey];
+    if (now - cached.timestamp < CACHE_DURATION) {
+      return cached;
+    } else {
+      await chrome.storage.local.remove(cacheKey);
+    }
+  }
+
+  const result = await performSecurityScan(url);
+  await chrome.storage.local.set({ [cacheKey]: result });
+  return result;  
+}
+
 // Function to update icon based on security score
 function updateIcon(tabId, safetyScore) {
   let iconState = ICON_STATES.SAFE; // default
@@ -39,7 +62,6 @@ function updateIcon(tabId, safetyScore) {
     }
   });
   
-  console.log(`Icon updated to ${iconState} (score: ${safetyScore})`);
 }
 
 // Listen for extension installation
@@ -69,12 +91,11 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// Updating recent scans storage
 function updateRecentScans(url, safetyScore) {
   let safeStatus = 'safe';
-  if (safetyScore >= 75) {
+  if (safetyScore >= ICON_THRESHOLDS.SAFE) {
     safeStatus = 'safe';
-  } else if (safetyScore >= 60) {
+  } else if (safetyScore >= ICON_THRESHOLDS.WARNING) {
     safeStatus = 'warning';
   } else {
     safeStatus = 'danger';
@@ -98,32 +119,24 @@ function updateRecentScans(url, safetyScore) {
 
     chrome.storage.local.set({recentScans: recent});
 
-    console.log('Updated recent scans');
   });
 }
 
 // Listen for tab updates to auto-scan current page
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     // Only scan if HTTP or HTTPS page
     if (!/^https?:\/\//i.test(tab.url)){
-      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
       return;
     }
     
     // Auto-scan the page and update icon
-    console.log('Tab updated:', tab.url);
     
     // Perform security scan
-    const result = performSecurityScan(tab.url);
+    const result = await getCachedOrScan(tab.url);
     
     // Update icon based on safety score
     updateIcon(tabId, result.safetyScore);
-    
-    // Store the result for the popup to access
-    chrome.storage.local.set({
-      [`scan_${tabId}`]: result
-    });
 
     // Update recently scanned
     updateRecentScans(tab.url, result.safetyScore);
@@ -137,83 +150,197 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   if (tab.url) {
     // Only scan if HTTP or HTTPS
     if (!/^https?:\/\//i.test(tab.url)) {
-      console.log("Skipping scan for non-HTTP/HTTPS page:", tab.url);
       return;
     }
-
-    // Check if we have a cached scan for this tab
-    const result = await chrome.storage.local.get(`scan_${activeInfo.tabId}`);
-    if (result[`scan_${activeInfo.tabId}`]) {
-      const safetyScore = result[`scan_${activeInfo.tabId}`].safetyScore;
-      updateIcon(activeInfo.tabId, safetyScore);
-
-      // Update recently scanned
-      updateRecentScans(tab.url, safetyScore);
-    } else {
-      // Perform new scan
-      const scanResult = performSecurityScan(tab.url);
-      updateIcon(activeInfo.tabId, scanResult.safetyScore);
-      chrome.storage.local.set({
-        [`scan_${activeInfo.tabId}`]: scanResult
-      });
-
-      updateRecentScans(tab.url, scanResult.safetyScore);
-    }
+    const result = await getCachedOrScan(tab.url);
+    updateIcon(activeInfo.tabId, result.safetyScore);
+    updateRecentScans(tab.url, result.safetyScore);
   }
 });
 
 // Message handler for communication with popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Handle async operations properly to avoid message port errors
   if (request.action === 'scanUrl') {
-    // Make sure manually entered websites have a TLD
-    if (!/\.[a-z]{2,}/i.test(request.url)) {
-      console.log("Invalid URL entered:", request.url);
-      return;
-    }
+    (async () => {
+      try {
+        // Make sure manually entered websites have a TLD
+        if (!/\.[a-z]{2,}/i.test(request.url)) {
+          console.log("Invalid URL entered:", request.url);
+          sendResponse({ error: true, message: "Invalid URL. Please enter a valid website address with a top-level domain (e.g., .com, .org, .net)" });
+          return;
+        }
 
-    // Simulate security scan
-    const result = performSecurityScan(request.url);
-    
-    // Update icon if this is for the current tab
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        updateIcon(tabs[0].id, result.safetyScore);
+        // Simulate security scan
+        const result = await getCachedOrScan(request.url);
         
-        // Store the result
-        chrome.storage.local.set({
-          [`scan_${tabs[0].id}`]: result
-        });      
-
-        // Update the recently scanned
-        updateRecentScans(request.url, result.safetyScore);
-
+        // Update icon if this is for the current tab
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tabs[0]) {
+          updateIcon(tabs[0].id, result.safetyScore);     
+          // Update the recently scanned
+          updateRecentScans(request.url, result.safetyScore);
+        }
+          
+        sendResponse(result);
+      } catch (error) {
+        console.error("Error in scanUrl:", error);
+        sendResponse({ error: true, message: error.message });
       }
-      sendResponse(result);
-    });
+    })();
     
+    // Return true to indicate we will send a response asynchronously
     return true;
   }
   
   if (request.action === 'getCurrentTab') {
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      if (tabs[0]) {
-        // Also send the current security score if available
-        const result = await chrome.storage.local.get(`scan_${tabs[0].id}`);
-        sendResponse({ 
-          url: tabs[0].url, 
-          title: tabs[0].title,
-          securityData: result[`scan_${tabs[0].id}`] || null
-        });
-      }
-    });
-    return true; // Will respond asynchronously
+    // If requestId is provided, we'll send response via message (don't keep channel open)
+    if (request.requestId) {
+      (async () => {
+        try {
+          // First, try to get the active tab (most common case)
+          const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          let targetTab = activeTabs[0];
+          
+          // Check if active tab is a valid HTTP/HTTPS page
+          if (!targetTab || !targetTab.url || !/^https?:\/\//i.test(targetTab.url) ||
+              targetTab.url.startsWith('chrome-extension://') || 
+              targetTab.url.startsWith('chrome://') || 
+              targetTab.url.startsWith('edge://') ||
+              targetTab.url.startsWith('about:')) {
+            // Active tab is not a valid webpage, search for the first valid HTTP/HTTPS tab
+            const allTabs = await chrome.tabs.query({ currentWindow: true });
+            for (const tab of allTabs) {
+              if (tab.url && /^https?:\/\//i.test(tab.url) &&
+                  !tab.url.startsWith('chrome-extension://') && 
+                  !tab.url.startsWith('chrome://') && 
+                  !tab.url.startsWith('edge://') &&
+                  !tab.url.startsWith('about:')) {
+                targetTab = tab;
+                break;
+              }
+            }
+          }
+          
+          let response;
+          if (targetTab && targetTab.url) {
+            const url = targetTab.url;
+            
+            // Check if URL is a valid URL to be scanned
+            if (!/^https?:\/\//i.test(url)) {
+              response = { url, title: targetTab.title, securityData: null };
+            } else {
+              const result = await getCachedOrScan(url);
+              response = { 
+                url, 
+                title: targetTab.title,
+                securityData: result || null
+              };
+            }
+          } else {
+            response = { url: null, title: null, securityData: null };
+          }
+          
+          // Send response via message
+          chrome.runtime.sendMessage({
+            action: 'getCurrentTabResponse',
+            requestId: request.requestId,
+            data: response
+          }).catch(() => {
+            // Silently ignore errors - popup might have closed
+          });
+        } catch (error) {
+          console.error('Error in getCurrentTab handler:', error);
+          chrome.runtime.sendMessage({
+            action: 'getCurrentTabResponse',
+            requestId: request.requestId,
+            data: { url: null, title: null, securityData: null, error: error.message }
+          }).catch(() => {
+            // Silently ignore errors - popup might have closed
+          });
+        }
+      })();
+      return false; // Don't keep channel open - we're using message pattern
+    } else {
+      // Synchronous response pattern - keep channel open
+      (async () => {
+        try {
+          const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          let targetTab = activeTabs[0];
+          
+          if (!targetTab || !targetTab.url || !/^https?:\/\//i.test(targetTab.url) ||
+              targetTab.url.startsWith('chrome-extension://') || 
+              targetTab.url.startsWith('chrome://') || 
+              targetTab.url.startsWith('edge://') ||
+              targetTab.url.startsWith('about:')) {
+            const allTabs = await chrome.tabs.query({ currentWindow: true });
+            for (const tab of allTabs) {
+              if (tab.url && /^https?:\/\//i.test(tab.url) &&
+                  !tab.url.startsWith('chrome-extension://') && 
+                  !tab.url.startsWith('chrome://') && 
+                  !tab.url.startsWith('edge://') &&
+                  !tab.url.startsWith('about:')) {
+                targetTab = tab;
+                break;
+              }
+            }
+          }
+          
+          if (targetTab && targetTab.url) {
+            const url = targetTab.url;
+            if (!/^https?:\/\//i.test(url)) {
+              sendResponse({ url, title: targetTab.title, securityData: null });
+              return;
+            }
+            const result = await getCachedOrScan(url);
+            sendResponse({ 
+              url, 
+              title: targetTab.title,
+              securityData: result || null
+            });
+          } else {
+            sendResponse({ url: null, title: null, securityData: null });
+          }
+        } catch (error) {
+          console.error('Error in getCurrentTab handler:', error);
+          sendResponse({ url: null, title: null, securityData: null, error: error.message });
+        }
+      })();
+      return true; // Keep the message channel open for async response
+    }
   }
   
-  return true;
+  // Return false if we don't handle the message
+  return false;
 });
 
+// Helper function to determine status from score
+function getStatusFromScore(score) {
+  if (score >= 90) return "excellent";
+  if (score >= 75) return "good";
+  if (score >= 60) return "moderate";
+  return "poor";
+}
+
+// Generate random score with weighted distribution (favors higher scores)
+function generateRandomScore(biasTowardHigh = true) {
+  const random = Math.random();
+  
+  if (biasTowardHigh) {
+    // 70% chance of good scores (60-100), 30% chance of lower scores (30-79)
+    if (random > 0.3) {
+      return Math.floor(Math.random() * 41) + 60; // 60-100
+    } else {
+      return Math.floor(Math.random() * 50) + 30; // 30-79
+    }
+  } else {
+    // Uniform distribution
+    return Math.floor(Math.random() * 101); // 0-100
+  }
+}
+
 // Simulated security scan function
-function performSecurityScan(url) {
+async function performSecurityScan(url) {
   // In a real extension, this would make API calls to security services
   
   let safetyScore;
@@ -237,17 +364,61 @@ function performSecurityScan(url) {
     }
   }
   
+  // Generate random scores for each indicator
+  // Using URL as a seed to ensure same URL gets same scores (via caching)
+  const indicators = [
+    { 
+      id: "cert", 
+      name: "Certificate Health", 
+      score: generateRandomScore(true),
+      status: null // Will be set below
+    },
+    { 
+      id: "connection", 
+      name: "Connection Security", 
+      score: generateRandomScore(true),
+      status: null
+    },
+    { 
+      id: "domain", 
+      name: "Domain Reputation", 
+      score: generateRandomScore(true),
+      status: null
+    },
+    { 
+      id: "credentials", 
+      name: "Credential Safety", 
+      score: generateRandomScore(true),
+      status: null
+    },
+    { 
+      id: "ip", 
+      name: "IP Reputation", 
+      score: generateRandomScore(true),
+      status: null
+    },
+    { 
+      id: "dns", 
+      name: "DNS Record Health", 
+      score: generateRandomScore(true),
+      status: null
+    },
+    { 
+      id: "whois", 
+      name: "WHOIS Pattern", 
+      score: generateRandomScore(true),
+      status: null
+    }
+  ];
+  
+  // Calculate status for each indicator based on its score
+  indicators.forEach(indicator => {
+    indicator.status = getStatusFromScore(indicator.score);
+  });
+  
   return {
     safetyScore: safetyScore,
-    indicators: [
-      { id: "cert", name: "Certificate Health", score: 95, status: "excellent" },
-      { id: "connection", name: "Connection Security", score: 100, status: "excellent" },
-      { id: "domain", name: "Domain Reputation", score: 78, status: "good" },
-      { id: "credentials", name: "Credential Safety", score: 85, status: "good" },
-      { id: "ip", name: "IP Reputation", score: 92, status: "excellent" },
-      { id: "dns", name: "DNS Record Health", score: 88, status: "good" },
-      { id: "whois", name: "WHOIS Pattern", score: 71, status: "moderate" }
-    ],
+    indicators: indicators,
     timestamp: Date.now()
   };
 }

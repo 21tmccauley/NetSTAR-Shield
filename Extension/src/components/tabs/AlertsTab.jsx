@@ -1,5 +1,19 @@
 import { Button } from "@/components/ui/button"
 
+/**
+ * AlertsTab component - Displays security alerts and warnings for dangerous websites
+ * 
+ * @component
+ * @memberof module:Front End
+ * @param {Object} props - Component props
+ * @param {string} props.mode - Current theme mode: "light" or "dark"
+ * @returns {JSX.Element} The rendered AlertsTab component
+ * 
+ * @example
+ * ```jsx
+ * <AlertsTab mode="dark" />
+ * ```
+ */
 export function AlertsTab({ mode }) {
   return (
     <div className="p-6 space-y-4">

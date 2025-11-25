@@ -147,8 +147,10 @@ function Popup() {
                 size="icon"
                 onClick={handleStartTour}
                 className="rounded-full h-8 w-8"
-                >
-                  <MessageCircleQuestionMark mode={mode} />
+              >
+                <MessageCircleQuestionMark
+                  className={`h-4 w-4 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`}
+                />
               </Button>
               <Button
                 id="settings-button"
@@ -189,9 +191,12 @@ function Popup() {
               {tabs.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
+                const tabButtonId = tab.id === "scan" ? "scan-tab-button" : 
+                                   tab.id === "alerts" ? "alerts-tab-button" : null
                 return (
                   <button
                     key={tab.id}
+                    id={tabButtonId}
                     onClick={() => setActiveTab(tab.id)}
                     className={getTabButtonClasses(isActive)}
                   >

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: components/tabs/SettingsTab.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: components/tabs/SettingsTab.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { Button } from "@/components/ui/button"
+
+/**
+ * SettingsTab component - Displays application settings and preferences
+ * 
+ * @component
+ * @memberof module:Front End
+ * @param {Object} props - Component props
+ * @param {string} props.mode - Current theme mode: "light" or "dark"
+ * @param {Function} props.onBack - Callback function to navigate back to the previous tab
+ * @param {Function} props.onStartTour - Callback function to start the guided tour
+ * @returns {JSX.Element} The rendered SettingsTab component
+ * 
+ * @example
+ * ```jsx
+ * &lt;SettingsTab 
+ *   mode="dark" 
+ *   onBack={() => setActiveTab("home")}
+ *   onStartTour={() => setIsTourActive(true)}
+ * />
+ * ```
+ */
+export function SettingsTab({ mode, onBack, onStartTour }) {
+  return (
+    &lt;div className="p-6 space-y-4">
+      &lt;Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={onBack} 
+        className={`mb-4 ${mode === "dark" ? "text-slate-200 hover:text-white" : "text-slate-700 hover:text-slate-900"}`}
+      >
+        ← Back
+      &lt;/Button>
+      
+      &lt;h2 className={`font-bold text-lg mb-4 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
+        Settings
+      &lt;/h2>
+
+      &lt;div className="space-y-4">
+        {/* Help &amp; Tutorial */}
+        &lt;div
+          className={`border-2 rounded-2xl p-5 ${mode === "dark" ? "border-brand-700 bg-gradient-to-br from-brand-900/30 to-slate-800/30" : "border-brand-300 bg-gradient-to-br from-brand-50 to-white"}`}
+        >
+          &lt;div className="flex items-start gap-3">
+            &lt;div className="flex-1">
+              &lt;h3 className={`font-medium mb-2 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
+                Help &amp; Tutorial
+              &lt;/h3>
+              &lt;p className={`text-sm mb-3 ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>
+                New to NetSTAR? Take a guided tour to learn how to use all the features and keep yourself safe online.
+              &lt;/p>
+              &lt;Button 
+                size="sm" 
+                onClick={onStartTour}
+                className="bg-gradient-to-r from-brand-500 to-brand-600 text-white hover:from-brand-600 hover:to-brand-700"
+              >
+                Start Guided Tour
+              &lt;/Button>
+            &lt;/div>
+          &lt;/div>
+        &lt;/div>
+
+        {/* Placeholder settings sections */}
+        &lt;div
+          className={`border rounded-2xl p-5 ${mode === "dark" ? "border-slate-700 bg-slate-800/30" : "border-slate-200 bg-slate-50"}`}
+        >
+          &lt;h3 className={`font-medium mb-2 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
+            General
+          &lt;/h3>
+          &lt;p className={`text-sm ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>
+            Configure general settings for NetSTAR
+          &lt;/p>
+        &lt;/div>
+
+        &lt;div
+          className={`border rounded-2xl p-5 ${mode === "dark" ? "border-slate-700 bg-slate-800/30" : "border-slate-200 bg-slate-50"}`}
+        >
+          &lt;h3 className={`font-medium mb-2 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
+            Notifications
+          &lt;/h3>
+          &lt;p className={`text-sm ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>
+            Manage alert and notification preferences
+          &lt;/p>
+        &lt;/div>
+
+        &lt;div
+          className={`border rounded-2xl p-5 ${mode === "dark" ? "border-slate-700 bg-slate-800/30" : "border-slate-200 bg-slate-50"}`}
+        >
+          &lt;h3 className={`font-medium mb-2 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
+            Privacy
+          &lt;/h3>
+          &lt;p className={`text-sm ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>
+            Control your privacy and data settings
+          &lt;/p>
+        &lt;/div>
+      &lt;/div>
+    &lt;/div>
+  )
+}
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Back%2520End.html">Back End</a></li><li><a href="module-Front%2520End.html">Front End</a></li><li><a href="module-Testing.html">Testing</a></li></ul><h3>Global</h3><ul><li><a href="global.html#EDUCATIONAL_CONTENT">EDUCATIONAL_CONTENT</a></li><li><a href="global.html#ThemeToggleIcon">ThemeToggleIcon</a></li><li><a href="global.html#getColorClasses">getColorClasses</a></li><li><a href="global.html#getDetailedStatusMessage">getDetailedStatusMessage</a></li><li><a href="global.html#getEducationalContent">getEducationalContent</a></li><li><a href="global.html#getStatusFromScore">getStatusFromScore</a></li><li><a href="global.html#getStatusInfo">getStatusInfo</a></li><li><a href="global.html#getStatusMessage">getStatusMessage</a></li><li><a href="global.html#themeValue">themeValue</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Fri Nov 14 2025 09:14:54 GMT-0700 (Mountain Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
