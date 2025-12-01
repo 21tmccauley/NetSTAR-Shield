@@ -1,0 +1,71 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36" version="29.2.2">
+  <diagram name="Page-1" id="BcyMDEnWsRNiphxw1736">
+    <mxGraphModel dx="1519" dy="834" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="browser-container" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 8;strokeWidth=2;fillColor=none;verticalAlign=top;fontSize=16;fontStyle=1;align=center;" value="Browser Environment" vertex="1">
+          <mxGeometry height="380" width="1240" x="80" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="server-container" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 8;strokeWidth=2;fillColor=none;verticalAlign=top;fontSize=16;fontStyle=1;align=center;" value="Local Server Environment (Sidecar)" vertex="1">
+          <mxGeometry height="380" width="840" x="80" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="external-container" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 8;strokeWidth=2;fillColor=none;verticalAlign=top;fontSize=16;fontStyle=1;align=center;" value="External" vertex="1">
+          <mxGeometry height="380" width="340" x="980" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="frontend-ui" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;fontSize=12;" value="&lt;b&gt;Frontend UI (Popup)&lt;/b&gt;&lt;br&gt;&lt;i&gt;Presentation Layer&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Tech Stack:&lt;/b&gt;&lt;br&gt;React 19, Vite, Tailwind&lt;br&gt;&lt;br&gt;&lt;b&gt;Responsibilities:&lt;/b&gt;&lt;br&gt;• Render Safety Score&lt;br&gt;• Render &quot;Hold On!&quot; Alerts&lt;br&gt;• User Controls (Scan Input, Settings)" vertex="1">
+          <mxGeometry height="280" width="320" x="120" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="service-worker" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;fontSize=12;" value="&lt;b&gt;Service Worker (background.js)&lt;/b&gt;&lt;br&gt;&lt;i&gt;Orchestrator&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Tech Stack:&lt;/b&gt;&lt;br&gt;Chrome Extension API&lt;br&gt;&lt;br&gt;&lt;b&gt;Responsibilities:&lt;/b&gt;&lt;br&gt;• Detect URL navigation (tabs.onUpdated)&lt;br&gt;• Check Cache first&lt;br&gt;• Dispatch Fetch Request to Server&lt;br&gt;• Trigger Icon Updates" vertex="1">
+          <mxGeometry height="280" width="360" x="500" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="local-cache" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;fontSize=12;" value="&lt;b&gt;Local Cache&lt;/b&gt;&lt;br&gt;&lt;i&gt;Data Store&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Tech Stack:&lt;/b&gt;&lt;br&gt;chrome.storage.local&lt;br&gt;&lt;br&gt;&lt;b&gt;Responsibilities:&lt;/b&gt;&lt;br&gt;• Store recentScans array&lt;br&gt;• Persist User Settings" vertex="1">
+          <mxGeometry height="280" width="340" x="920" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="node-server" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;fontSize=12;" value="&lt;b&gt;Node Server&lt;/b&gt;&lt;br&gt;&lt;i&gt;Bridge / API Gateway&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Tech Stack:&lt;/b&gt;&lt;br&gt;Node.js, Express&lt;br&gt;&lt;br&gt;&lt;b&gt;Responsibilities:&lt;/b&gt;&lt;br&gt;• Accept HTTP GET requests from Extension&lt;br&gt;• Handle CORS&lt;br&gt;• Spawn Python Child Process" vertex="1">
+          <mxGeometry height="280" width="340" x="120" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="scoring-engine" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;fontSize=12;" value="&lt;b&gt;Scoring Engine&lt;/b&gt;&lt;br&gt;&lt;i&gt;The Brain&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Tech Stack:&lt;/b&gt;&lt;br&gt;Python 3, cURL&lt;br&gt;&lt;br&gt;&lt;b&gt;Responsibilities:&lt;/b&gt;&lt;br&gt;• Fetch Data (w4.netstar.dev)&lt;br&gt;• Calculate Harmonic Mean&lt;br&gt;• Apply &quot;Gate&quot; Logic (Blocking)&lt;br&gt;• Output JSON" vertex="1">
+          <mxGeometry height="280" width="340" x="520" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="netstar-cloud" parent="1" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontColor=#333333;" value="&lt;b&gt;NetSTAR API&lt;/b&gt;&lt;br&gt;&lt;br&gt;w4.netstar.dev&lt;br&gt;&lt;br&gt;Cloud Services" vertex="1">
+          <mxGeometry height="160" width="220" x="1040" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-sw-cache" edge="1" parent="1" source="service-worker" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;fontSize=11;" target="local-cache" value="Read/Write&lt;br&gt;Cache Operations">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="700" y="500" as="sourcePoint" />
+            <mxPoint x="750" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-sw-node" edge="1" parent="1" source="service-worker" style="endArrow=classic;html=1;rounded=0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fontSize=11;" target="node-server" value="&lt;b&gt;HTTP / Fetch&lt;/b&gt;&lt;br&gt;GET /scan?url=...">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="480" />
+              <mxPoint x="290" y="480" />
+            </Array>
+            <mxPoint x="700" y="500" as="sourcePoint" />
+            <mxPoint x="750" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-node-scoring" edge="1" parent="1" source="node-server" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;fontSize=11;" target="scoring-engine" value="&lt;b&gt;Child Process / Spawn&lt;/b&gt;&lt;br&gt;stdout (JSON)">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="700" y="700" as="sourcePoint" />
+            <mxPoint x="750" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-scoring-netstar" edge="1" parent="1" source="scoring-engine" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=2;fontSize=11;" target="netstar-cloud" value="&lt;b&gt;HTTPS / cURL&lt;/b&gt;&lt;br&gt;JSON Telemetry">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="700" y="700" as="sourcePoint" />
+            <mxPoint x="750" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-ui-sw" edge="1" parent="1" source="frontend-ui" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;fontSize=11;dashed=1;" target="service-worker" value="User Actions&lt;br&gt;Display Updates">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="700" y="500" as="sourcePoint" />
+            <mxPoint x="750" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
