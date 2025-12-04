@@ -12,8 +12,9 @@ const ICON_STATES = {
 }
 
 // TESTING: Set a specific score here (null = random scores)
-// Examples: 95 (green), 70 (amber), 45 (red), null (random)
-const TEST_SCORE = null;
+// Examples: 95 (green/safe), 70 (amber/warning), 45 (red/danger), null (random)
+// For testing alerts: Use a score below 75 (e.g., 45 for danger, 65 for warning)
+const TEST_SCORE = 45; // Set to null to use random scores, or a number (0-100) for fixed score
 
 // The TTL for the cache storing scan results.
 const CACHE_DURATION = 1000 * 5 * 60; // 5 minutes
@@ -62,6 +63,85 @@ function updateIcon(tabId, safetyScore) {
     }
   });
   
+}
+
+// Function to send alert message to content script
+async function sendAlertToContentScript(tabId, safetyScore, url) {
+  try {
+    // First, check if this tab supports content scripts
+    const tab = await chrome.tabs.get(tabId).catch(() => null);
+    if (!tab || !tab.url) {
+      return; // Tab doesn't exist or has no URL
+    }
+
+    // Skip chrome://, chrome-extension://, edge://, about: pages
+    if (tab.url.startsWith('chrome://') || 
+        tab.url.startsWith('chrome-extension://') || 
+        tab.url.startsWith('edge://') ||
+        tab.url.startsWith('about:') ||
+        !/^https?:\/\//i.test(tab.url)) {
+      return; // Can't inject into these pages
+    }
+
+    // Check if we should show alert (only for unsafe sites)
+    if (safetyScore < ICON_THRESHOLDS.SAFE) {
+      // Try to send message with retry logic
+      let retries = 3;
+      let success = false;
+      
+      while (retries > 0 && !success) {
+        try {
+          await chrome.tabs.sendMessage(tabId, {
+            action: 'showAlert',
+            safetyScore: safetyScore,
+            url: url
+          });
+          success = true;
+        } catch (err) {
+          // Content script might not be loaded yet
+          if (err.message.includes('Receiving end does not exist')) {
+            retries--;
+            if (retries > 0) {
+              // Wait a bit before retrying (content script might still be loading)
+              await new Promise(resolve => setTimeout(resolve, 500));
+            } else {
+              // Last resort: try to inject the script manually
+              try {
+                await chrome.scripting.executeScript({
+                  target: { tabId: tabId },
+                  files: ['src/content.js']
+                });
+                // Wait a moment for script to initialize
+                await new Promise(resolve => setTimeout(resolve, 200));
+                // Try sending message again
+                await chrome.tabs.sendMessage(tabId, {
+                  action: 'showAlert',
+                  safetyScore: safetyScore,
+                  url: url
+                });
+              } catch (injectErr) {
+                // Page might not allow injection (CSP, etc.)
+                console.log('Could not inject or send alert to content script:', injectErr.message);
+              }
+            }
+          } else {
+            // Different error, don't retry
+            console.log('Error sending alert:', err.message);
+            break;
+          }
+        }
+      }
+    } else {
+      // Hide alert if site is safe
+      await chrome.tabs.sendMessage(tabId, {
+        action: 'hideAlert'
+      }).catch(err => {
+        // Ignore errors - content script might not be loaded
+      });
+    }
+  } catch (error) {
+    console.log('Error in sendAlertToContentScript:', error);
+  }
 }
 
 // Listen for extension installation
@@ -141,6 +221,12 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     // Update recently scanned
     updateRecentScans(tab.url, result.safetyScore);
 
+    // Send alert to content script if site is unsafe
+    // Add a small delay to ensure content script has loaded
+    setTimeout(() => {
+      sendAlertToContentScript(tabId, result.safetyScore, tab.url);
+    }, 300);
+
   }
 });
 
@@ -155,6 +241,11 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     const result = await getCachedOrScan(tab.url);
     updateIcon(activeInfo.tabId, result.safetyScore);
     updateRecentScans(tab.url, result.safetyScore);
+    // Send alert to content script if site is unsafe
+    // Add a small delay to ensure content script has loaded
+    setTimeout(() => {
+      sendAlertToContentScript(activeInfo.tabId, result.safetyScore, tab.url);
+    }, 300);
   }
 });
 
@@ -180,6 +271,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           updateIcon(tabs[0].id, result.safetyScore);     
           // Update the recently scanned
           updateRecentScans(request.url, result.safetyScore);
+          // Send alert to content script if site is unsafe (only if URL matches current tab)
+          try {
+            const requestHostname = new URL(request.url.startsWith('http') ? request.url : `https://${request.url}`).hostname;
+            if (tabs[0].url && tabs[0].url.includes(requestHostname)) {
+              await sendAlertToContentScript(tabs[0].id, result.safetyScore, tabs[0].url);
+            }
+          } catch (e) {
+            // If URL parsing fails, just skip the alert
+            console.log('Could not match URL for alert:', e);
+          }
         }
           
         sendResponse(result);
@@ -308,6 +409,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       })();
       return true; // Keep the message channel open for async response
     }
+  }
+  
+  if (request.action === 'highlightExtension') {
+    // We can't programmatically open popup, but we can set a badge
+    // to draw attention to the extension icon
+    chrome.action.setBadgeText({ text: '!' });
+    chrome.action.setBadgeBackgroundColor({ color: '#ef4444' });
+    sendResponse({ success: true });
+    return true;
   }
   
   // Return false if we don't handle the message
