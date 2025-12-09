@@ -4,12 +4,30 @@ import { Button } from "@/components/ui/button";
 import * as Switch from "@radix-ui/react-switch";
 
 /**
- * @file SettingsTab.jsx
- * @description Settings UI for NetSTAR focusing on Chrome-level notifications only.
- * - Toggle ON: requests Chrome notifications permission if needed, then sends one test notification.
- * - Toggle OFF: disables notifications via a soft setting (does not revoke permission).
- * - Revoke button: removes the Chrome notifications permission for this extension.
- * The notifications helper text is static to avoid layout shift.
+ * SettingsTab component - Displays application settings and preferences.
+ *
+ * Notifications model:
+ *  - Soft toggle saved in chrome.storage.local as `notificationsEnabledSoft`.
+ *  - Chrome optional permission "notifications".
+ *  - We only send alerts when both soft toggle and permission are true.
+ *  - When turning ON, request permission if missing, then show one test notification.
+ *  - Turning OFF keeps the browser permission intact (soft disable only).
+ *  - A separate button fully revokes the browser permission.
+ *
+ * @component
+ * @memberof module:Front End
+ * @param {Object} props
+ * @param {"light"|"dark"} props.mode - Current theme mode
+ * @param {Function} props.onBack - Navigate back to previous tab
+ * @param {Function} props.onStartTour - Start guided tour
+ * @returns {JSX.Element}
+ *
+ * @example
+ * <SettingsTab
+ *   mode="dark"
+ *   onBack={() => setActiveTab("home")}
+ *   onStartTour={() => setIsTourActive(true)}
+ * />
  */
 
 /** Read soft toggle from storage. */
@@ -28,7 +46,7 @@ function writeSoftToggle(value) {
   });
 }
 
-/** Check if Chrome notifications permission is granted. */
+/** Check Chrome notifications permission. */
 function hasNotificationsPermission() {
   return new Promise((resolve) => {
     if (!chrome || !chrome.permissions) return resolve(false);
@@ -93,15 +111,7 @@ async function showTestNotification() {
   );
 }
 
-/**
- * SettingsTab component
- * @param {Object} props
- * @param {"light"|"dark"} [props.mode="light"]
- * @param {Function} props.onBack
- * @param {Function} props.onStartTour
- * @returns {JSX.Element}
- */
-export function SettingsTab({ mode = "light", onBack, onStartTour }) {
+export function SettingsTab({ mode, onBack, onStartTour }) {
   const [softEnabled, setSoftEnabled] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -122,8 +132,8 @@ export function SettingsTab({ mode = "light", onBack, onStartTour }) {
   }, []);
 
   /**
-   * Toggle soft setting. If turning ON and permission is missing, request it.
-   * After enabling, send a single test notification.
+   * Toggle notifications (soft). When turning ON, request permission if needed,
+   * persist the soft toggle, and show one test notification.
    */
   const handleToggleSoft = async (nextChecked) => {
     if (isChecking) return;
@@ -153,14 +163,14 @@ export function SettingsTab({ mode = "light", onBack, onStartTour }) {
       return;
     }
 
-    // Turning OFF (soft only; keep browser permission intact)
+    // Turning OFF (soft only)
     await writeSoftToggle(false);
     setSoftEnabled(false);
     setHasPermission(await hasNotificationsPermission());
     setIsChecking(false);
   };
 
-  /** Full revoke of browser permission. Soft flag is also turned off. */
+  /** Fully revoke browser permission and clear soft toggle. */
   const handleRevokePermission = async () => {
     setIsChecking(true);
     await revokeNotificationsPermission();
@@ -184,7 +194,7 @@ export function SettingsTab({ mode = "light", onBack, onStartTour }) {
       <h2 className={`font-bold text-lg mb-4 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>Settings</h2>
 
       <div className="space-y-4">
-        {/* Help and Tutorial */}
+        {/* Help & Tutorial */}
         <div
           className={`border-2 rounded-2xl p-5 ${
             mode === "dark"
@@ -194,7 +204,7 @@ export function SettingsTab({ mode = "light", onBack, onStartTour }) {
         >
           <div className="flex items-start gap-3">
             <div className="flex-1">
-              <h3 className={`font-medium mb-2 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>Help and Tutorial</h3>
+              <h3 className={`font-medium mb-2 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>Help & Tutorial</h3>
               <p className={`text-sm mb-3 ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>
                 New to NetSTAR? Take a guided tour to learn how to use all the features and keep yourself safe online.
               </p>
@@ -223,10 +233,9 @@ export function SettingsTab({ mode = "light", onBack, onStartTour }) {
               <p className={`text-sm ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>
                 Turn desktop alerts on or off for risky sites. When enabled, we will notify you if a page looks unsafe.
               </p>
-              {/* No dynamic status text here to prevent layout shift */}
             </div>
 
-            {/* Radix Switch */}
+            {/* Radix Switch for notifications soft toggle */}
             <div className="flex items-center gap-2">
               <label htmlFor="notif-switch" className="sr-only">
                 Notifications
@@ -256,7 +265,7 @@ export function SettingsTab({ mode = "light", onBack, onStartTour }) {
             </div>
           </div>
 
-          {/* Revoke permission section with explanation */}
+          {/* Revoke permission */}
           <div className="mt-4 border-t pt-3">
             <h4 className={`text-sm font-medium mb-1 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
               Revoke browser permission
