@@ -208,8 +208,13 @@ def score_dns_scan(data: dict) -> int:
     """
     score = 100
     rcode = data.get("rcode", 0)
-    a_count = len(data.get("a", []))
-    aaaa_count = len(data.get("aaaa", []))
+    # Handle None values gracefully
+    if rcode is None:
+        rcode = 0
+    a_records = data.get("a", [])
+    aaaa_records = data.get("aaaa", [])
+    a_count = len(a_records) if a_records is not None else 0
+    aaaa_count = len(aaaa_records) if aaaa_records is not None else 0
 
     # --- 2. RCODE Completeness Check (New Banded Scoring) ---
     # Goal: Ensure a wide set of requested record types are returned.
