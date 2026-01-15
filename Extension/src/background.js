@@ -253,8 +253,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ error: true, message: error.message });
       }
     })();
-
-    return true; // respond asynchronously
+    
+    // Return true to indicate we will send a response asynchronously
+    return true;
   }
 
   if (request.action === "getCurrentTab") {
