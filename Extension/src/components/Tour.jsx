@@ -10,7 +10,7 @@ const HIGHLIGHT_IDS = {
   SECURITY_SCORE: "security-score",
   SECURITY_INDICATORS: "security-indicators",
   SCAN_TAB_BUTTON: "scan-tab-button",
-  ALERTS_TAB_BUTTON: "alerts-tab-button"
+  // ALERTS_TAB_BUTTON: "alerts-tab-button"
 }
 
 export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepChange }) {
@@ -46,13 +46,13 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
       highlightId: HIGHLIGHT_IDS.SCAN_TAB_BUTTON,
       position: "top"
     },
-    {
-      tab: "alerts",
-      title: "Alerts Tab",
-      description: "The Alerts tab shows you important security warnings when we detect potential threats on a website you're visiting.",
-      highlightId: HIGHLIGHT_IDS.ALERTS_TAB_BUTTON,
-      position: "top"
-    },
+    // {
+    //   tab: "alerts",
+    //   title: "Alerts Tab",
+    //   description: "The Alerts tab shows you important security warnings when we detect potential threats on a website you're visiting.",
+    //   highlightId: HIGHLIGHT_IDS.ALERTS_TAB_BUTTON,
+    //   position: "top"
+    // },
     {
       tab: "home",
       title: "Theme Toggle",
@@ -73,7 +73,7 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
   const isButtonHighlight = currentStepData?.highlightId === HIGHLIGHT_IDS.THEME_TOGGLE || 
                             currentStepData?.highlightId === HIGHLIGHT_IDS.SETTINGS_BUTTON ||
                             currentStepData?.highlightId === HIGHLIGHT_IDS.SCAN_TAB_BUTTON ||
-                            currentStepData?.highlightId === HIGHLIGHT_IDS.ALERTS_TAB_BUTTON
+                            // currentStepData?.highlightId === HIGHLIGHT_IDS.ALERTS_TAB_BUTTON
 
   // Navigate to the correct tab when step changes and notify parent
   useEffect(() => {
@@ -226,8 +226,8 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
               <Settings className={`h-4 w-4 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`} />
             ) : currentStepData.highlightId === HIGHLIGHT_IDS.SCAN_TAB_BUTTON ? (
               <Search className={`h-5 w-5 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`} />
-            ) : currentStepData.highlightId === HIGHLIGHT_IDS.ALERTS_TAB_BUTTON ? (
-              <Bell className={`h-5 w-5 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`} />
+            // ) : currentStepData.highlightId === HIGHLIGHT_IDS.ALERTS_TAB_BUTTON ? (
+            //   <Bell className={`h-5 w-5 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`} />
             ) : null}
           </div>
         </div>
