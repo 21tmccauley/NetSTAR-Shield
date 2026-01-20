@@ -72,8 +72,8 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
   const currentStepData = steps[currentStep]
   const isButtonHighlight = currentStepData?.highlightId === HIGHLIGHT_IDS.THEME_TOGGLE || 
                             currentStepData?.highlightId === HIGHLIGHT_IDS.SETTINGS_BUTTON ||
-                            currentStepData?.highlightId === HIGHLIGHT_IDS.SCAN_TAB_BUTTON ||
-                            // currentStepData?.highlightId === HIGHLIGHT_IDS.ALERTS_TAB_BUTTON
+                            currentStepData?.highlightId === HIGHLIGHT_IDS.SCAN_TAB_BUTTON
+                            //|| currentStepData?.highlightId === HIGHLIGHT_IDS.ALERTS_TAB_BUTTON
 
   // Navigate to the correct tab when step changes and notify parent
   useEffect(() => {
