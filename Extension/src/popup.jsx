@@ -94,7 +94,7 @@ function Popup() {
 
   const tabs = [
     { id: "home", label: "Home", icon: Home },
-    { id: "scan", label: "Scan", icon: Search },
+    { id: "scan", label: "Scan", icon: Search }
     // { id: "alerts", label: "Alerts", icon: Bell },
   ]
 
@@ -187,7 +187,7 @@ function Popup() {
           <div
             className={`border-t ${mode === "dark" ? "border-brand-900/30 bg-slate-900/80" : "border-brand-200 bg-white/80"} backdrop-blur-sm`}
           >
-            <div className="grid grid-cols-3 gap-1 p-2">
+            <div className="grid grid-cols-2 gap-1 p-2">
               {tabs.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
