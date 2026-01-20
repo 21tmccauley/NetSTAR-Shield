@@ -11,7 +11,11 @@ function createAlertOverlay(safetyScore, url) {
   // Check if user has dismissed this alert for this URL
   const dismissedKey = `${ALERT_DISMISSED_KEY}-${url}`;
   const dismissed = sessionStorage.getItem(dismissedKey);
+  console.log('[NetSTAR] Checking dismissal for URL:', url);
+  console.log('[NetSTAR] Dismissal key:', dismissedKey);
+  console.log('[NetSTAR] Dismissed status:', dismissed);
   if (dismissed === 'true') {
+    console.log('[NetSTAR] Alert already dismissed, not showing');
     return; // Don't show if dismissed
   }
 
@@ -58,6 +62,8 @@ function createAlertOverlay(safetyScore, url) {
   backdrop.onclick = () => {
     // Close alert when backdrop is clicked
     sessionStorage.setItem(dismissedKey, 'true');
+    console.log('[NetSTAR] Alert dismissed (backdrop click) for URL:', url);
+    console.log('[NetSTAR] SessionStorage key set:', dismissedKey);
     removeAlert();
   };
 
@@ -311,6 +317,8 @@ function createAlertOverlay(safetyScore, url) {
   closeBtn.title = 'Dismiss alert';
   closeBtn.onclick = () => {
     sessionStorage.setItem(dismissedKey, 'true');
+    console.log('[NetSTAR] Alert dismissed for URL:', url);
+    console.log('[NetSTAR] SessionStorage key set:', dismissedKey);
     removeAlert();
   };
 
@@ -377,7 +385,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     removeAlert();
     sendResponse({ success: true });
   }
-  return true; // Keep channel open for async response
+  return true;
 });
 
 // Clean up alert when navigating away
@@ -387,17 +395,34 @@ window.addEventListener('beforeunload', () => {
 
 // Also handle SPA navigation (for single-page apps)
 let lastUrl = location.href;
-new MutationObserver(() => {
-  const url = location.href;
-  if (url !== lastUrl) {
-    lastUrl = url;
-    // Clear dismissed alerts when URL changes
-    Object.keys(sessionStorage).forEach(key => {
-      if (key.startsWith(ALERT_DISMISSED_KEY)) {
-        sessionStorage.removeItem(key);
-      }
-    });
+
+// Use multiple methods to detect URL changes for better reliability
+function checkUrlChange() {
+  const currentUrl = location.href;
+  if (currentUrl !== lastUrl) {
+    const previousUrl = lastUrl;
+    lastUrl = currentUrl;
+    
+    // Only clear the dismissal for the previous URL, not all dismissals
+    if (previousUrl) {
+      const previousDismissedKey = `${ALERT_DISMISSED_KEY}-${previousUrl}`;
+      sessionStorage.removeItem(previousDismissedKey);
+    }
     removeAlert();
   }
+}
+
+// Listen for popstate (back/forward navigation)
+window.addEventListener('popstate', checkUrlChange);
+
+// Listen for hashchange
+window.addEventListener('hashchange', checkUrlChange);
+
+// Use MutationObserver as a fallback, but throttle it
+let mutationTimeout;
+new MutationObserver(() => {
+  // Throttle checks to avoid excessive clearing
+  clearTimeout(mutationTimeout);
+  mutationTimeout = setTimeout(checkUrlChange, 100);
 }).observe(document, { subtree: true, childList: true });
 
