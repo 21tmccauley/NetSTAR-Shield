@@ -127,6 +127,7 @@ def fetch_scan_data_concurrent(host: str) -> dict:
     """
     all_scans = {}
     print(f"\n--- Fetching live data for {host} from NetStar API (via concurrent cURL) ---", file=sys.stderr)
+    print(f"\"url\": \"{host}\"")
 
     # Use ThreadPoolExecutor to run tasks in parallel
     # The number of workers is set to the number of endpoints to run all simultaneously
