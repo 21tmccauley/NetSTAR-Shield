@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { X, Settings, Search, Bell } from "lucide-react"
+import { X, Settings, Search } from "lucide-react"
 import { ThemeToggleIcon } from "@/components/ThemeToggleIcon"
 
 // Constants for button highlight IDs

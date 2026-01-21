@@ -7,7 +7,7 @@ import { ScanTab } from "@/components/tabs/ScanTab"
 import { SettingsTab } from "@/components/tabs/SettingsTab"
 import { Tour } from "@/components/Tour"
 import { Button } from "@/components/ui/button"
-import { Home, Search, Shield, Bell, Settings, MessageCircleQuestionMark } from "lucide-react"
+import { Home, Search, Settings, MessageCircleQuestionMark } from "lucide-react"
 import { ThemeToggleIcon } from "@/components/ThemeToggleIcon"
 import "@/index.css"
 
@@ -191,9 +191,7 @@ function Popup() {
               {tabs.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
-                const tabButtonId = tab.id === "scan" ? "scan-tab-button" : 
-                                  //  tab.id === "alerts" ? "alerts-tab-button" :
-                                   null
+                const tabButtonId = tab.id === "scan" ? "scan-tab-button" : null
                 return (
                   <button
                     key={tab.id}
