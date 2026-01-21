@@ -11,6 +11,9 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "optional_permissions": [
+    "notifications"
+  ],
   "action": {
     "default_popup": "src/index.html",
     "default_icon": {

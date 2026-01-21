@@ -78,13 +78,13 @@ if __name__ == '__main__':
 
     # 2. Decide whether to use test data or fetch live data
     if args.use_test_data:
-        print(f"--- Running analysis on TEST DATA ---", file=sys.stderr)
+        print(f"--- Running analysis on TEST DATA ---")
         all_scans = test_scans
         # For reproducible results, we'll set a fixed date for the expiration checks.
         # Cert Sample Expiration: 2025-12-15.
         scan_date = datetime(2025, 10, 15)
     else:
-        print(f"--- Running analysis on LIVE DATA for {args.target} ---", file=sys.stderr)
+        print(f"--- Running analysis on LIVE DATA for {args.target} ---")
         # For live data, use the real date!
         scan_date = datetime.now()
         # *** CHANGED TO THE CONCURRENT FETCH FUNCTION ***
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     
     # 3. Check if we have data, then calculate and print scores
     if not all_scans:
-        print("No scan data was retrieved. Exiting.", file=sys.stderr)
+        print("No scan data was retrieved. Exiting.")
         sys.exit(1)
 
     final_scores = calculate_security_score(all_scans, scan_date)
@@ -103,17 +103,17 @@ if __name__ == '__main__':
     elapsed_time = end_time - start_time
     # ----------------------------------------------------
 
-    print("\n--- Individual Scan Scores (Max 100) ---", file=sys.stderr)
+    print("\n--- Individual Scan Scores (Max 100) ---")
     for key, value in final_scores.items():
         if key != 'Aggregated_Score':
-            print(f"\"{key:<15}\": \"{value}\"")
+            print(f"{key:<15}: {value}")
             
-    print("\n-------------------------------------------", file=sys.stderr)
-    print(f"\"aggregatedScore\": \"{final_scores.get('Aggregated_Score')}\"")
-    print("-------------------------------------------", file=sys.stderr)
+    print("\n-------------------------------------------")
+    print(f"AGGREGATED SECURITY SCORE: {final_scores.get('Aggregated_Score')}")
+    print("-------------------------------------------")
 
     # ----------------------------------------------------
     # PRINT THE ELAPSED TIME 
-    print(f"Total execution time: {elapsed_time:.2f} seconds", file=sys.stderr)
-    print("-------------------------------------------", file=sys.stderr)
+    print(f"Total execution time: {elapsed_time:.2f} seconds")
+    print("-------------------------------------------")
 

@@ -3,7 +3,6 @@ import subprocess
 from typing import Optional, List, Tuple, Dict
 from concurrent.futures import ThreadPoolExecutor
 from config import BASE_URL, API_ENDPOINTS
-import sys
 
 # --- Data Fetching Function (Using 'curl' subprocess) ---
 
@@ -12,7 +11,7 @@ def execute_curl_command(command: List[str]) -> Optional[str]: #KEEP
     Executes a shell command (cURL) and returns the standard output.
     Handles potential errors during execution.
     """
-    print(f"Executing command: {' '.join(command)}", file=sys.stderr)
+    print(f"Executing command: {' '.join(command)}")
     try:
         # Run the command, capture stdout, and decode as text
         result = subprocess.run(
@@ -25,21 +24,21 @@ def execute_curl_command(command: List[str]) -> Optional[str]: #KEEP
 
         if result.returncode != 0:
             # Report the error code and stderr if the command failed
-            print(f"Error executing command. Return code: {result.returncode}", file=sys.stderr)
-            print(f"Standard Error:\n{result.stderr.strip()}", file=sys.stderr)
+            print(f"Error executing command. Return code: {result.returncode}")
+            print(f"Standard Error:\n{result.stderr.strip()}")
             return None
 
         # The output is returned as a string (JSON)
         return result.stdout.strip()
 
     except FileNotFoundError:
-        print("Error: The 'curl' command was not found. Make sure it is installed and in your system PATH.", file=sys.stderr)
+        print("Error: The 'curl' command was not found. Make sure it is installed and in your system PATH.")
         return None
     except subprocess.TimeoutExpired:
-        print("Error: Command execution timed out.", file=sys.stderr)
+        print("Error: Command execution timed out.")
         return None
     except Exception as e:
-        print(f"An unexpected error occurred during execution: {e}", file=sys.stderr)
+        print(f"An unexpected error occurred during execution: {e}")
         return None
 
 def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict | None]:
@@ -60,33 +59,10 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
         query = '?A&AAAA&CNAME&DNS&MX&TXT'
     full_url = f"{BASE_URL}{endpoint}/{host}{query}"
     
+    # 3. Define the cURL command
+    CURL_COMMAND = ['curl', '-s', full_url]
 
-    # 3. Define the cURL command (with exception for RDAP POST)
-    print(f"\n[Processing Endpoint: {endpoint.upper()}]", file=sys.stderr)
-    
-    CURL_COMMAND = [] # Initialize command list
-
-    # --- EXCEPTION LOGIC FOR RDAP POST REQUEST ---
-    if endpoint == 'rdap':
-        # Target: curl -X POST https://w4.netstar.dev/rdap -d '{"host": "espn.com", "full": true}'
-        
-        # The URL in this specific POST case is just the base endpoint, not {endpoint}/{host}
-        rdap_url = f"{BASE_URL}{endpoint}" 
-        json_data = f'{{"host": "{host}", "full": true}}'
-        
-        CURL_COMMAND = [
-            'curl', 
-            '-s', 
-            '-X', 'POST', 
-            rdap_url, 
-            '-d', json_data
-        ]
-        
-    # --- DEFAULT LOGIC (for all other GET requests) ---
-    else:
-        # Target: curl -s {full_url}
-        CURL_COMMAND = ['curl', '-s', full_url]
-
+    print(f"\n[Processing Endpoint: {endpoint.upper()}]")
 
     # 4. Execute the command
     output = execute_curl_command(CURL_COMMAND)
@@ -95,29 +71,16 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
         print(f"--> Endpoint {endpoint.upper()} failed execution. Skipping.")
         return (None, None)
     
-    
-    # # 3. Define the cURL command
-    # CURL_COMMAND = ['curl', '-s', full_url]
-
-    # print(f"\n[Processing Endpoint: {endpoint.upper()}]")
-
-    # # 4. Execute the command
-    # output = execute_curl_command(CURL_COMMAND)
-    
-    # if output is None:
-    #     print(f"--> Endpoint {endpoint.upper()} failed execution. Skipping.")
-    #     return (None, None)
-    
     # 5. Parse the JSON output
     try:
         data = json.loads(output)
         # Note: Printing final success message after command execution for clarity
         return (scan_key, data)
     except json.JSONDecodeError:
-        print(f"--> Endpoint {endpoint.upper()} returned invalid JSON. Skipping.", file=sys.stderr)
+        print(f"--> Endpoint {endpoint.upper()} returned invalid JSON. Skipping.")
         return (None, None)
     except Exception as e:
-        print(f"--> An error occurred processing {endpoint.upper()}: {e}", file=sys.stderr)
+        print(f"--> An error occurred processing {endpoint.upper()}: {e}")
         return (None, None)
 
 def fetch_scan_data_concurrent(host: str) -> dict: 
@@ -126,7 +89,7 @@ def fetch_scan_data_concurrent(host: str) -> dict:
     using a ThreadPoolExecutor.
     """
     all_scans = {}
-    print(f"\n--- Fetching live data for {host} from NetStar API (via concurrent cURL) ---", file=sys.stderr)
+    print(f"\n--- Fetching live data for {host} from NetStar API (via concurrent cURL) ---")
 
     # Use ThreadPoolExecutor to run tasks in parallel
     # The number of workers is set to the number of endpoints to run all simultaneously
@@ -145,5 +108,5 @@ def fetch_scan_data_concurrent(host: str) -> dict:
             if scan_key and data:
                 all_scans[scan_key] = data
 
-    print("\n--- Data fetching complete ---", file=sys.stderr)
+    print("\n--- Data fetching complete ---")
     return all_scans
