@@ -15,9 +15,6 @@ const ICON_STATES = {
   DANGER: "danger"
 };
 
-// Testing: set a fixed score or null for random
-const TEST_SCORE = null;
-
 // Cache TTL for scan results
 const CACHE_DURATION = 1000 * 5 * 60; // 5 minutes
 
@@ -385,58 +382,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 /** ------------------------------
- *  Score helpers and scan mock
+ *  Scanning functionality
  *  ------------------------------
  */
-function getStatusFromScore(score) {
-  if (score >= 90) return "excellent";
-  if (score >= 75) return "good";
-  if (score >= 60) return "moderate";
-  return "poor";
-}
+async function performSecurityScan(url) {  
+  // The IP address used in this fetch may have to change if the IP of the server changes.
+  // We have port 3000 used currently in server.js so it's used here. May need to change.
+  const response = await fetch(`69.164.202.138:3000/scan?domain=${encodeURIComponent(url)}`);
+  //const response = await fetch(`http://localhost:3000/scan?domain=${encodeURIComponent(url)}`);
+  const data = await response.json();
 
-function generateRandomScore(biasTowardHigh = true) {
-  const random = Math.random();
-
-  if (biasTowardHigh) {
-    if (random > 0.3) {
-      return Math.floor(Math.random() * 41) + 60; // 60-100
-    } else {
-      return Math.floor(Math.random() * 50) + 30; // 30-79
-    }
-  } else {
-    return Math.floor(Math.random() * 101); // 0-100
-  }
-}
-
-async function performSecurityScan(url) {
-  let safetyScore;
-
-  if (TEST_SCORE !== null) {
-    safetyScore = TEST_SCORE;
-    console.log(`TEST MODE: Using fixed score of ${TEST_SCORE}`);
-  } else {
-    const random = Math.random();
-    if (random > 0.8) {
-      safetyScore = Math.floor(Math.random() * 40) + 40; // 40-79
-    } else {
-      safetyScore = Math.floor(Math.random() * 25) + 75; // 75-100
-    }
-  }
-
-  const indicators = [
-    { id: "cert", name: "Certificate Health", score: generateRandomScore(true), status: null },
-    { id: "connection", name: "Connection Security", score: generateRandomScore(true), status: null },
-    { id: "domain", name: "Domain Reputation", score: generateRandomScore(true), status: null },
-    { id: "credentials", name: "Credential Safety", score: generateRandomScore(true), status: null },
-    { id: "ip", name: "IP Reputation", score: generateRandomScore(true), status: null },
-    { id: "dns", name: "DNS Record Health", score: generateRandomScore(true), status: null },
-    { id: "whois", name: "WHOIS Pattern", score: generateRandomScore(true), status: null }
-  ];
-
-  indicators.forEach((indicator) => {
-    indicator.status = getStatusFromScore(indicator.score);
-  });
+  safetyScore = data.aggregatedScore;
+  indicators = data.indicators;
 
   return {
     safetyScore,
