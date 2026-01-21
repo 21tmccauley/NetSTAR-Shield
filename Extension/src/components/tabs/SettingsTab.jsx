@@ -3,6 +3,66 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import * as Switch from "@radix-ui/react-switch";
 
+function TextSizeRow({ mode, value, onChange }) {
+  const labels = ["Smallest", "Small", "Default", "Large", "Largest"];
+  const clampStep = (v) => Math.max(0, Math.min(4, v));
+  const safeValue = clampStep(Number.isFinite(value) ? value : 2);
+
+  // Absolute endpoints for the UI "H" sizes
+  const minPx = 14;
+  const maxPx = 18;
+
+  const track = mode === "dark" ? "rgba(148, 163, 184, 0.35)" : "rgba(148, 163, 184, 0.6)";
+  const thumb = mode === "dark" ? "#ffffff" : "#0f172a";
+  const thumbBorder = mode === "dark" ? "rgba(255,255,255,0.25)" : "rgba(15,23,42,0.15)";
+
+  return (
+    <div className="mt-4">
+      <div className="flex items-center gap-4">
+        <div className={`text-sm font-medium ${mode === "dark" ? "text-white" : "text-slate-900"} min-w-[88px]`}>
+          Text Size
+        </div>
+
+        <div className="textsize-ui">
+          {/* Small A (fixed size) */}
+          <span
+            style={{ fontSize: "14px", lineHeight: "1" }}
+            className={mode === "dark" ? "text-slate-300" : "text-slate-700"}
+            aria-hidden="true"
+          >
+            A
+          </span>
+
+          {/* Slider + ticks (fixed size) */}
+          <div className="textsize-trackwrap" style={{ "--ts-track": track, "--ts-thumb": thumb, "--ts-thumb-border": thumbBorder }}>
+            <input
+              type="range"
+              min={0}
+              max={4}
+              step={1}
+              value={safeValue}
+              onChange={(e) => onChange(clampStep(Number(e.target.value)))}
+              className="textsize-range"
+              aria-label="Text size"
+              aria-valuetext={labels[safeValue] ?? "Default"}
+            />
+          </div>
+
+          {/* Big A (fixed size) */}
+          <span
+            style={{ fontSize: "18px", lineHeight: "1" }}
+            className={mode === "dark" ? "text-slate-200" : "text-slate-900"}
+            aria-hidden="true"
+          >
+            A
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 /**
  * SettingsTab component - Displays application settings and preferences.
  *
@@ -111,7 +171,7 @@ async function showTestNotification() {
   );
 }
 
-export function SettingsTab({ mode, onBack, onStartTour }) {
+export function SettingsTab({ mode, onBack, onStartTour, textSizeStep, onTextSizeStepChange }) {
   const [softEnabled, setSoftEnabled] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -182,14 +242,14 @@ export function SettingsTab({ mode, onBack, onStartTour }) {
 
   return (
     <div className="p-6 space-y-4">
-      <Button
+      {/* <Button
         variant="ghost"
         size="sm"
         onClick={onBack}
         className={`mb-4 ${mode === "dark" ? "text-slate-200 hover:text-white" : "text-slate-700 hover:text-slate-900"}`}
       >
         ← Back
-      </Button>
+      </Button> */}
 
       <h2 className={`font-bold text-lg mb-4 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>Settings</h2>
 
@@ -223,6 +283,7 @@ export function SettingsTab({ mode, onBack, onStartTour }) {
         <div className={`border rounded-2xl p-5 ${mode === "dark" ? "border-slate-700 bg-slate-800/30" : "border-slate-200 bg-slate-50"}`}>
           <h3 className={`font-medium mb-2 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>General</h3>
           <p className={`text-sm ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>Configure general settings for NetSTAR</p>
+          <TextSizeRow mode={mode} value={textSizeStep ?? 2} onChange={onTextSizeStepChange} />
         </div>
 
         {/* Notifications */}
@@ -285,10 +346,10 @@ export function SettingsTab({ mode, onBack, onStartTour }) {
         </div>
 
         {/* Privacy */}
-        <div className={`border rounded-2xl p-5 ${mode === "dark" ? "border-slate-700 bg-slate-800/30" : "border-slate-200 bg-slate-50"}`}>
+        {/* <div className={`border rounded-2xl p-5 ${mode === "dark" ? "border-slate-700 bg-slate-800/30" : "border-slate-200 bg-slate-50"}`}>
           <h3 className={`font-medium mb-2 ${mode === "dark" ? "text-white" : "text-slate-900"}`}>Privacy</h3>
           <p className={`text-sm ${mode === "dark" ? "text-slate-300" : "text-slate-600"}`}>Control your privacy and data settings</p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

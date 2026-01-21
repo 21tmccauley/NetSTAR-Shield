@@ -18,6 +18,7 @@ function Popup() {
   const [isTourActive, setIsTourActive] = useState(false)
   const [forceShowIndicators, setForceShowIndicators] = useState(undefined)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [textSizeStep, setTextSizeStep] = useState(2) // 0..4, 2 = default
   const scrollContainerRef = useRef(null)
 
   useEffect(() => {
@@ -27,14 +28,24 @@ function Popup() {
     }
 
     let isMounted = true
-    chrome.storage.sync.get({ themeMode: "light" }, ({ themeMode }) => {
-      if (!isMounted) return
+    chrome.storage.sync.get(
+      { themeMode: "light", textSizeStep: 2 },
+      ({ themeMode, textSizeStep }) => {
+        if (!isMounted) return
 
-      if (themeMode === "dark" || themeMode === "light") {
-        setMode(themeMode)
+        if (themeMode === "dark" || themeMode === "light") {
+          setMode(themeMode)
+        }
+
+        const step = Number(textSizeStep)
+        if (Number.isFinite(step) && step >= 0 && step <= 4) {
+          setTextSizeStep(step)
+        }
+
+        setIsLoaded(true)
       }
-      setIsLoaded(true)
-    })
+    )
+
 
     return () => {
       isMounted = false
@@ -45,8 +56,21 @@ function Popup() {
     if (!isLoaded) return
     if (!chrome?.storage?.sync) return
 
-    chrome.storage.sync.set({ themeMode: mode }, () => {})
-  }, [mode, isLoaded])
+    chrome.storage.sync.set({ themeMode: mode, textSizeStep }, () => {})
+  }, [mode, textSizeStep, isLoaded])
+
+
+  useEffect(() => {
+    // Keep index 2 at your current default (16px)
+    const stepToPx = [14, 15, 16, 17, 18]
+    const px = stepToPx[textSizeStep] ?? 16
+
+    document.documentElement.style.fontSize = `${px}px`
+
+    return () => {
+      document.documentElement.style.fontSize = "16px"
+    }
+  }, [textSizeStep])
 
   const toggleMode = () => {
     setMode((prevMode) => (prevMode === "light" ? "dark" : "light"))
@@ -178,12 +202,18 @@ function Popup() {
           )}
           {activeTab === "alerts" && <AlertsTab mode={mode} />}
           {activeTab === "settings" && (
-            <SettingsTab mode={mode} onBack={handleBack} onStartTour={handleStartTour} />
+            <SettingsTab
+              mode={mode}
+              onBack={handleBack}
+              onStartTour={handleStartTour}
+              textSizeStep={textSizeStep}
+              onTextSizeStepChange={setTextSizeStep}
+            />
           )}
         </div>
 
         {/* Bottom Tab Navigation */}
-        {activeTab !== "details" && activeTab !== "settings" && (
+        {activeTab !== "details" && (
           <div
             className={`border-t ${mode === "dark" ? "border-brand-900/30 bg-slate-900/80" : "border-brand-200 bg-white/80"} backdrop-blur-sm`}
           >
