@@ -3,11 +3,11 @@ import { createRoot } from "react-dom/client"
 import { HomeTab } from "@/components/tabs/HomeTab"
 import { DetailsTab } from "@/components/tabs/DetailsTab"
 import { ScanTab } from "@/components/tabs/ScanTab"
-import { AlertsTab } from "@/components/tabs/AlertsTab"
+// import { AlertsTab } from "@/components/tabs/AlertsTab"
 import { SettingsTab } from "@/components/tabs/SettingsTab"
 import { Tour } from "@/components/Tour"
 import { Button } from "@/components/ui/button"
-import { Home, Search, Shield, Bell, Settings, MessageCircleQuestionMark } from "lucide-react"
+import { Home, Search, Settings, MessageCircleQuestionMark } from "lucide-react"
 import { ThemeToggleIcon } from "@/components/ThemeToggleIcon"
 import "@/index.css"
 
@@ -94,8 +94,8 @@ function Popup() {
 
   const tabs = [
     { id: "home", label: "Home", icon: Home },
-    { id: "scan", label: "Scan", icon: Search },
-    { id: "alerts", label: "Alerts", icon: Bell },
+    { id: "scan", label: "Scan", icon: Search }
+    // { id: "alerts", label: "Alerts", icon: Bell },
   ]
 
   // Helper function to get tab button classes
@@ -176,7 +176,7 @@ function Popup() {
           {activeTab === "scan" && (
             <ScanTab mode={mode} onScanComplete={handleScanComplete} />
           )}
-          {activeTab === "alerts" && <AlertsTab mode={mode} />}
+          {/* {activeTab === "alerts" && <AlertsTab mode={mode} />} */}
           {activeTab === "settings" && (
             <SettingsTab mode={mode} onBack={handleBack} onStartTour={handleStartTour} />
           )}
@@ -187,12 +187,11 @@ function Popup() {
           <div
             className={`border-t ${mode === "dark" ? "border-brand-900/30 bg-slate-900/80" : "border-brand-200 bg-white/80"} backdrop-blur-sm`}
           >
-            <div className="grid grid-cols-3 gap-1 p-2">
+            <div className="grid grid-cols-2 gap-1 p-2">
               {tabs.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
-                const tabButtonId = tab.id === "scan" ? "scan-tab-button" : 
-                                   tab.id === "alerts" ? "alerts-tab-button" : null
+                const tabButtonId = tab.id === "scan" ? "scan-tab-button" : null
                 return (
                   <button
                     key={tab.id}
