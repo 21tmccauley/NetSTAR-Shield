@@ -425,7 +425,16 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
-/* Keep the slider UI from scaling when html font-size changes */
+/**
+ * Text size slider fixed layout (session change)
+ *
+ * The popup's text size setting changes `html { font-size: ... }`, which scales rem-based UI.
+ * To prevent the slider control from resizing, we lock the slider UI to fixed px sizing:
+ * - `.textsize-ui` uses a fixed font-size and fixed width.
+ * - `.textsize-trackwrap` uses fixed px width/height.
+ * - The slider input and thumb/track are styled explicitly.
+ */
+
 .textsize-ui {
   font-size: 16px;
 

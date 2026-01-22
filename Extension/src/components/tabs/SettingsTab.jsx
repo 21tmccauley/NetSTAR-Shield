@@ -3,12 +3,35 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import * as Switch from "@radix-ui/react-switch";
 
+/**
+ * TextSizeRow (General → Text Size)
+ *
+ * Requirements implemented during this session:
+ * - The "Text Size" label acts as the visible test text for scaling.
+ * - The slider UI (track/thumb and the A indicators) MUST NOT resize when text scaling changes.
+ *
+ * Approach:
+ * - The slider UI is wrapped in a container (`.textsize-ui`) that is locked to a fixed px font-size
+ *   and fixed px layout in CSS.
+ * - The `value` is discrete (0..4) to keep 5 stable accessibility options.
+ *
+ * Note:
+ * - We removed tick marks to avoid alignment/length issues across browsers and font scales.
+ * - The slider remains discrete via step=1, so users still get 5 fixed positions.
+ */
+
 function TextSizeRow({ mode, value, onChange }) {
   const labels = ["Smallest", "Small", "Default", "Large", "Largest"];
   const clampStep = (v) => Math.max(0, Math.min(4, v));
   const safeValue = clampStep(Number.isFinite(value) ? value : 2);
 
-  // Absolute endpoints for the UI "H" sizes
+/**
+ * Endpoint indicator sizing.
+ *
+ * We render small and large "A" at fixed px sizes so they visually represent the extremes
+ * without being affected by the global text scaling setting.
+ */
+
   const minPx = 14;
   const maxPx = 18;
 
@@ -22,7 +45,15 @@ function TextSizeRow({ mode, value, onChange }) {
         <div className={`text-sm font-medium ${mode === "dark" ? "text-white" : "text-slate-900"} min-w-[88px]`}>
           Text Size
         </div>
-
+        /**
+        * IMPORTANT: The `.textsize-ui` container is intentionally fixed-size in CSS so that:
+        * - slider track/thumb
+        * - "A" endpoint indicators
+        * - spacing/width
+        * do NOT change when the popup's root font-size changes.
+        *
+        * This ensures the control remains stable while the surrounding UI text scales.
+        */
         <div className="textsize-ui">
           {/* Small A (fixed size) */}
           <span
@@ -32,6 +63,15 @@ function TextSizeRow({ mode, value, onChange }) {
           >
             A
           </span>
+
+          /**
+          * Discrete 5-step range input (0..4).
+          *
+          * - step=1 ensures only 5 positions.
+          * - `aria-valuetext` provides accessible labels ("Smallest"..."Largest").
+          *
+          * Tick marks were removed to keep layout stable and avoid browser inconsistencies.
+          */
 
           {/* Slider + ticks (fixed size) */}
           <div className="textsize-trackwrap" style={{ "--ts-track": track, "--ts-thumb": thumb, "--ts-thumb-border": thumbBorder }}>

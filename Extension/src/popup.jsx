@@ -8,6 +8,18 @@ import { SettingsTab } from "@/components/tabs/SettingsTab"
 import { Tour } from "@/components/Tour"
 import { Button } from "@/components/ui/button"
 import { Home, Search, Shield, Bell, Settings, MessageCircleQuestionMark } from "lucide-react"
+/**
+ * Text size accessibility setting (5-step discrete scale).
+ *
+ * - Stored as `textSizeStep` in chrome.storage.sync.
+ * - Range: 0..4 (0=smallest, 2=default/current size, 4=largest).
+ * - Applied by changing document root (`<html>`) font-size so Tailwind `rem`-based text scales.
+ *
+ * NOTE:
+ * - This will scale most of the UI (since Tailwind uses rem).
+ * - Some UI elements (like the text size slider control itself) are intentionally "locked"
+ *   to fixed px sizing via CSS so that the slider does not visually resize when the text size changes.
+ */
 import { ThemeToggleIcon } from "@/components/ThemeToggleIcon"
 import "@/index.css"
 
@@ -21,6 +33,16 @@ function Popup() {
   const [textSizeStep, setTextSizeStep] = useState(2) // 0..4, 2 = default
   const scrollContainerRef = useRef(null)
 
+  /**
+ * Load persisted user preferences from chrome.storage.sync.
+ *
+ * - themeMode: "light" | "dark"
+ * - textSizeStep: number 0..4
+ *
+ * Uses an `isMounted` guard to prevent state updates after unmount.
+ * Falls back safely when chrome.storage.sync is unavailable (e.g., non-extension dev context).
+ */
+
   useEffect(() => {
     if (!chrome?.storage?.sync) {
       setIsLoaded(true)
@@ -28,6 +50,16 @@ function Popup() {
     }
 
     let isMounted = true
+    /**
+     * Persist user preferences to chrome.storage.sync.
+     *
+     * Writes:
+     * - themeMode
+     * - textSizeStep
+     *
+     * Only runs after initial settings load completes (`isLoaded`).
+     */
+
     chrome.storage.sync.get(
       { themeMode: "light", textSizeStep: 2 },
       ({ themeMode, textSizeStep }) => {
@@ -59,6 +91,20 @@ function Popup() {
     chrome.storage.sync.set({ themeMode: mode, textSizeStep }, () => {})
   }, [mode, textSizeStep, isLoaded])
 
+/**
+ * Apply the current text size step to the popup document.
+ *
+ * Implementation:
+ * - Maps 5 discrete steps to px values (e.g., 14..18).
+ * - Writes `document.documentElement.style.fontSize`.
+ *
+ * Cleanup:
+ * - Restores default font-size on unmount so this component does not leave global styles behind.
+ *
+ * Design note:
+ * - This scales general UI text (our "test text").
+ * - The slider UI is styled with fixed px dimensions (CSS) so its track/thumb/labels do not scale.
+ */
 
   useEffect(() => {
     // Keep index 2 at your current default (16px)
@@ -201,6 +247,16 @@ function Popup() {
             <ScanTab mode={mode} onScanComplete={handleScanComplete} />
           )}
           {activeTab === "alerts" && <AlertsTab mode={mode} />}
+          
+          /**
+          * SettingsTab receives the text size preference and its setter so that the General settings
+          * screen can control the popup's text scaling.
+          *
+          * Props added:
+          * - textSizeStep
+          * - onTextSizeStepChange
+          */
+
           {activeTab === "settings" && (
             <SettingsTab
               mode={mode}
