@@ -34,15 +34,14 @@ function Popup() {
   const scrollContainerRef = useRef(null)
 
   /**
- * Load persisted user preferences from chrome.storage.sync.
- *
- * - themeMode: "light" | "dark"
- * - textSizeStep: number 0..4
- *
- * Uses an `isMounted` guard to prevent state updates after unmount.
- * Falls back safely when chrome.storage.sync is unavailable (e.g., non-extension dev context).
- */
-
+   * Load persisted user preferences from chrome.storage.sync.
+   *
+   * - themeMode: "light" | "dark"
+   * - textSizeStep: number 0..4
+   *
+   * Uses an `isMounted` guard to prevent state updates after unmount.
+   * Falls back safely when chrome.storage.sync is unavailable (e.g., non-extension dev context).
+   */
   useEffect(() => {
     if (!chrome?.storage?.sync) {
       setIsLoaded(true)
@@ -50,15 +49,6 @@ function Popup() {
     }
 
     let isMounted = true
-    /**
-     * Persist user preferences to chrome.storage.sync.
-     *
-     * Writes:
-     * - themeMode
-     * - textSizeStep
-     *
-     * Only runs after initial settings load completes (`isLoaded`).
-     */
 
     chrome.storage.sync.get(
       { themeMode: "light", textSizeStep: 2 },
@@ -78,12 +68,20 @@ function Popup() {
       }
     )
 
-
     return () => {
       isMounted = false
     }
   }, [])
 
+  /**
+   * Persist user preferences to chrome.storage.sync.
+   *
+   * Writes:
+   * - themeMode
+   * - textSizeStep
+   *
+   * Only runs after initial settings load completes (`isLoaded`).
+   */
   useEffect(() => {
     if (!isLoaded) return
     if (!chrome?.storage?.sync) return
@@ -91,30 +89,37 @@ function Popup() {
     chrome.storage.sync.set({ themeMode: mode, textSizeStep }, () => {})
   }, [mode, textSizeStep, isLoaded])
 
-/**
- * Apply the current text size step to the popup document.
- *
- * Implementation:
- * - Maps 5 discrete steps to px values (e.g., 14..18).
- * - Writes `document.documentElement.style.fontSize`.
- *
- * Cleanup:
- * - Restores default font-size on unmount so this component does not leave global styles behind.
- *
- * Design note:
- * - This scales general UI text (our "test text").
- * - The slider UI is styled with fixed px dimensions (CSS) so its track/thumb/labels do not scale.
- */
-
+  /**
+   * Apply the current text size step to the popup document.
+   *
+   * Implementation:
+   * - Maps 5 discrete steps to px values (e.g., 14..18).
+   * - Writes `document.documentElement.style.fontSize`.
+   *
+   * Smoothing:
+   * - Adds a short transition on `font-size` so the change feels less abrupt.
+   *   (Works well for small deltas like 14–18px.)
+   *
+   * Cleanup:
+   * - Restores default font-size and clears transition on unmount.
+   *
+   * Design note:
+   * - This scales general UI text (our "test text").
+   * - The slider UI is styled with fixed px dimensions (CSS) so its track/thumb/labels do not scale.
+   */
   useEffect(() => {
     // Keep index 2 at your current default (16px)
     const stepToPx = [14, 15, 16, 17, 18]
     const px = stepToPx[textSizeStep] ?? 16
 
+    // Smooth the jump between sizes
+    document.documentElement.style.transition = "font-size 140ms ease"
+
     document.documentElement.style.fontSize = `${px}px`
 
     return () => {
       document.documentElement.style.fontSize = "16px"
+      document.documentElement.style.transition = ""
     }
   }, [textSizeStep])
 
@@ -178,9 +183,7 @@ function Popup() {
   }
 
   if (!isLoaded) {
-    return (
-      <div className="p-4 text-sm text-slate-500">Loading...</div>
-    )
+    return <div className="p-4 text-sm text-slate-500">Loading...</div>
   }
 
   return (
@@ -247,16 +250,15 @@ function Popup() {
             <ScanTab mode={mode} onScanComplete={handleScanComplete} />
           )}
           {activeTab === "alerts" && <AlertsTab mode={mode} />}
-          
-          /**
-          * SettingsTab receives the text size preference and its setter so that the General settings
-          * screen can control the popup's text scaling.
-          *
-          * Props added:
-          * - textSizeStep
-          * - onTextSizeStepChange
-          */
 
+          {/**
+            * SettingsTab receives the text size preference and its setter so that the General settings
+            * screen can control the popup's text scaling.
+            *
+            * Props added:
+            * - textSizeStep
+            * - onTextSizeStepChange
+            */}
           {activeTab === "settings" && (
             <SettingsTab
               mode={mode}
@@ -277,8 +279,12 @@ function Popup() {
               {tabs.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
-                const tabButtonId = tab.id === "scan" ? "scan-tab-button" : 
-                                   tab.id === "alerts" ? "alerts-tab-button" : null
+                const tabButtonId =
+                  tab.id === "scan"
+                    ? "scan-tab-button"
+                    : tab.id === "alerts"
+                      ? "alerts-tab-button"
+                      : null
                 return (
                   <button
                     key={tab.id}
