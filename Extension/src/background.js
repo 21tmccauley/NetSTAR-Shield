@@ -16,7 +16,7 @@ const ICON_STATES = {
 };
 
 // Testing: set a fixed score or null for random
-const TEST_SCORE = null;
+const TEST_SCORE = 45;
 
 // Cache TTL for scan results
 const CACHE_DURATION = 1000 * 5 * 60; // 5 minutes
@@ -80,6 +80,27 @@ async function maybeShowRiskNotification(url, safetyScore) {
       }
     }
   );
+}
+
+/** Show in-page alert overlay via content script for risky sites. */
+async function maybeShowInPageAlert(tabId, url, safetyScore) {
+  // Only show alert for scores below 75 (warning or danger)
+  if (safetyScore >= ICON_THRESHOLDS.SAFE) return;
+  
+  // Only show on HTTP/HTTPS pages
+  if (!url || (!url.startsWith("http://") && !url.startsWith("https://"))) return;
+
+  // Send alert message to content script (it's auto-injected via manifest)
+  try {
+    await chrome.tabs.sendMessage(tabId, {
+      action: "showAlert",
+      safetyScore,
+      url
+    });
+  } catch (error) {
+    // Content script not ready or page doesn't support it - silently fail
+    console.log("[NetSTAR] Could not show alert:", error.message);
+  }
 }
 
 /** ----------------------------
@@ -204,7 +225,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     updateIcon(tabId, result.safetyScore);
     updateRecentScans(tab.url, result.safetyScore);
 
-    // New: notify only when allowed by soft toggle and permission
+    // Show in-page alert overlay for risky sites
+    await maybeShowInPageAlert(tabId, tab.url, result.safetyScore);
+    
+    // Also show native notification if enabled
     await maybeShowRiskNotification(tab.url, result.safetyScore);
   }
 });
@@ -225,6 +249,17 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
  *  -----------------------------------------
  */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "highlightExtension") {
+    // Flash the extension icon badge to guide user to click it
+    chrome.action.setBadgeText({ text: "!" });
+    chrome.action.setBadgeBackgroundColor({ color: "#6366f1" });
+    setTimeout(() => {
+      chrome.action.setBadgeText({ text: "" });
+    }, 3000);
+    sendResponse({ success: true });
+    return false;
+  }
+
   if (request.action === "scanUrl") {
     (async () => {
       try {
@@ -380,6 +415,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
   }
+
 
   return false;
 });
