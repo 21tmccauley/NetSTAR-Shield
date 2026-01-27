@@ -287,7 +287,11 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
                   size="sm"
                   onClick={handleBack}
                   disabled={currentStep === 0}
-                  className="flex-1 h-8 text-xs"
+                  className={`flex-1 h-8 text-xs ${
+                    mode === "dark"
+                      ? "text-slate-100 border-slate-500 bg-slate-900/30 hover:bg-slate-800/60 hover:text-white"
+                      : "text-slate-800 border-slate-300 bg-white hover:bg-slate-50"
+                  }`}
                 >
                   Back
                 </Button>
