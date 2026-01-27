@@ -18,13 +18,13 @@ SECURITY_FLAGS = {
 
 # Weights for each component in the final score calculation
 WEIGHTS = {
-    'Connection_Security': 20,
-    'Certificate_Health': 18,
-    'DNS_Record_Health': 17,
-    'Domain_Reputation': 25,    
-    'WHOIS_Pattern': 0, #unused currently
-    'IP Reputation': 0, #unused currently
-    'Credential Safety': 20
+    'Connection_Security': 18,
+    'Certificate_Health': 16,
+    'DNS_Record_Health': 15,
+    'Domain_Reputation': 23,    
+    'WHOIS_Pattern': 10, #unused currently
+    'IP Reputation': 0, #unused currently (probably won't be used)
+    'Credential Safety': 18
 }
 
 # --- GLOBAL CONFIGURATION ---
@@ -41,3 +41,5 @@ API_ENDPOINTS = [
 # Default target hostname used if no argument is provided
 DEFAULT_URL = 'netstar.ai' 
 
+# Verbose mode flag
+VERBOSE = False
