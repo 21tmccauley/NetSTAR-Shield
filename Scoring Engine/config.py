@@ -41,3 +41,5 @@ API_ENDPOINTS = [
 # Default target hostname used if no argument is provided
 DEFAULT_URL = 'netstar.ai' 
 
+# Verbose mode flag
+VERBOSE = False

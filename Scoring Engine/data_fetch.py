@@ -4,6 +4,7 @@ from typing import Optional, List, Tuple, Dict
 from concurrent.futures import ThreadPoolExecutor
 from config import BASE_URL, API_ENDPOINTS
 import sys
+import config as app_config
 
 # --- Data Fetching Function (Using 'curl' subprocess) ---
 
@@ -12,7 +13,8 @@ def execute_curl_command(command: List[str]) -> Optional[str]: #KEEP
     Executes a shell command (cURL) and returns the standard output.
     Handles potential errors during execution.
     """
-    print(f"Executing command: {' '.join(command)}", file=sys.stderr)
+    if app_config.VERBOSE:
+        print(f"Executing command: {' '.join(command)}", file=sys.stderr)
     try:
         # Run the command, capture stdout, and decode as text
         result = subprocess.run(
@@ -25,21 +27,25 @@ def execute_curl_command(command: List[str]) -> Optional[str]: #KEEP
 
         if result.returncode != 0:
             # Report the error code and stderr if the command failed
-            print(f"Error executing command. Return code: {result.returncode}", file=sys.stderr)
-            print(f"Standard Error:\n{result.stderr.strip()}", file=sys.stderr)
+            if app_config.VERBOSE:
+                print(f"Error executing command. Return code: {result.returncode}", file=sys.stderr)
+                print(f"Standard Error:\n{result.stderr.strip()}", file=sys.stderr)
             return None
 
         # The output is returned as a string (JSON)
         return result.stdout.strip()
 
     except FileNotFoundError:
-        print("Error: The 'curl' command was not found. Make sure it is installed and in your system PATH.", file=sys.stderr)
+        if app_config.VERBOSE:
+            print("Error: The 'curl' command was not found. Make sure it is installed and in your system PATH.", file=sys.stderr)
         return None
     except subprocess.TimeoutExpired:
-        print("Error: Command execution timed out.", file=sys.stderr)
+        if app_config.VERBOSE:
+            print("Error: Command execution timed out.", file=sys.stderr)
         return None
     except Exception as e:
-        print(f"An unexpected error occurred during execution: {e}", file=sys.stderr)
+        if app_config.VERBOSE:
+            print(f"An unexpected error occurred during execution: {e}", file=sys.stderr)
         return None
 
 def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict | None]:
@@ -62,7 +68,8 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
     
 
     # 3. Define the cURL command (with exception for RDAP POST)
-    print(f"\n[Processing Endpoint: {endpoint.upper()}]", file=sys.stderr)
+    if app_config.VERBOSE:
+        print(f"\n[Processing Endpoint: {endpoint.upper()}]", file=sys.stderr)
     
     CURL_COMMAND = [] # Initialize command list
 
@@ -92,7 +99,8 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
     output = execute_curl_command(CURL_COMMAND)
     
     if output is None:
-        print(f"--> Endpoint {endpoint.upper()} failed execution. Skipping.")
+        if app_config.VERBOSE:
+            print(f"--> Endpoint {endpoint.upper()} failed execution. Skipping.", file=sys.stderr)
         return (None, None)
     
     
@@ -114,10 +122,12 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
         # Note: Printing final success message after command execution for clarity
         return (scan_key, data)
     except json.JSONDecodeError:
-        print(f"--> Endpoint {endpoint.upper()} returned invalid JSON. Skipping.", file=sys.stderr)
+        if app_config.VERBOSE:
+            print(f"--> Endpoint {endpoint.upper()} returned invalid JSON. Skipping.", file=sys.stderr)
         return (None, None)
     except Exception as e:
-        print(f"--> An error occurred processing {endpoint.upper()}: {e}", file=sys.stderr)
+        if app_config.VERBOSE:
+            print(f"--> An error occurred processing {endpoint.upper()}: {e}", file=sys.stderr)
         return (None, None)
 
 def fetch_scan_data_concurrent(host: str) -> dict: 
@@ -126,7 +136,8 @@ def fetch_scan_data_concurrent(host: str) -> dict:
     using a ThreadPoolExecutor.
     """
     all_scans = {}
-    print(f"\n--- Fetching live data for {host} from NetStar API (via concurrent cURL) ---", file=sys.stderr)
+    if app_config.VERBOSE:
+        print(f"\n--- Fetching live data for {host} from NetStar API (via concurrent cURL) ---", file=sys.stderr)
     print(f"\"url\": \"{host}\"")
 
     # Use ThreadPoolExecutor to run tasks in parallel
@@ -145,6 +156,7 @@ def fetch_scan_data_concurrent(host: str) -> dict:
         for scan_key, data in future_results:
             if scan_key and data:
                 all_scans[scan_key] = data
-
-    print("\n--- Data fetching complete ---", file=sys.stderr)
+                
+    if app_config.VERBOSE:
+        print("\n--- Data fetching complete ---", file=sys.stderr)
     return all_scans
