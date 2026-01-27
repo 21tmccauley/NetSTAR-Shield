@@ -423,17 +423,48 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  */
 async function performSecurityScan(url) {  
   // The IP address used in this fetch may have to change if the IP of the server changes.
-  // We have port 3000 used currently in server.js so it's used here. May need to change.
-  const response = await fetch(`69.164.202.138:3000/scan?domain=${encodeURIComponent(url)}`);
-  //const response = await fetch(`http://localhost:3000/scan?domain=${encodeURIComponent(url)}`);
-  const data = await response.json();
+  // NOTE: fetch() requires a scheme (http/https). Also, the server accepts full URLs via ?url=...
+  // Remote server:
+  // const response = await fetch(
+  //   `http://69.164.202.138:3000/scan?url=${encodeURIComponent(url)}`
+  // );
+  // Local dev:
+  const endpoint = `http://localhost:3000/scan?url=${encodeURIComponent(url)}`;
+  const startedAt = Date.now();
+  console.log("[NetSTAR][scan] Requesting:", endpoint);
 
-  safetyScore = data.aggregatedScore;
-  indicators = data.indicators;
+  try {
+    const response = await fetch(endpoint);
+    const elapsedMs = Date.now() - startedAt;
 
-  return {
-    safetyScore,
-    indicators,
-    timestamp: Date.now()
-  };
+    console.log("[NetSTAR][scan] Response:", {
+      endpoint,
+      status: response.status,
+      ok: response.ok,
+      elapsedMs
+    });
+
+    const data = await response.json();
+    console.log("[NetSTAR][scan] Payload summary:", {
+      safetyScore: data?.safetyScore,
+      aggregatedScore: data?.aggregatedScore,
+      indicatorsCount: Array.isArray(data?.indicators) ? data.indicators.length : 0,
+      timestamp: data?.timestamp
+    });
+
+    const safetyScore = Number.isFinite(data?.safetyScore)
+      ? data.safetyScore
+      : data?.aggregatedScore;
+    const indicators = data?.indicators || [];
+
+    return {
+      safetyScore,
+      indicators,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    const elapsedMs = Date.now() - startedAt;
+    console.error("[NetSTAR][scan] Failed:", { endpoint, elapsedMs, error });
+    throw error;
+  }
 }
