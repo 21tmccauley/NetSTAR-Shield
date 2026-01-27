@@ -6,10 +6,14 @@
   "permissions": [
     "activeTab",
     "storage",
-    "tabs"
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "<all_urls>"
+  ],
+  "optional_permissions": [
+    "notifications"
   ],
   "action": {
     "default_popup": "src/index.html",
@@ -43,5 +47,12 @@
   "background": {
     "service_worker": "src/background.js",
     "type": "module"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }

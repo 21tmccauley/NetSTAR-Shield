@@ -22,3 +22,6 @@ if run without a target URL, it will default to netstar.ai
 
 run `python scoring_main.py -t [TARGET URL]` to test against target URL
 * If the cert scan fails, running it again may work
+
+run `python scoring_main.py -v` to get additional information on the execution of curl commands, reasons for score deductions, and runtime information
+

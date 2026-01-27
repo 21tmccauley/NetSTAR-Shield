@@ -1,5 +1,6 @@
 const express = require("express");
 const { spawn } = require("child_process");
+const adjustScanOutput = require("./adjustScanOutput");
 const app = express();
 
 // Simple endpoint: /scan?domain=example.com
@@ -18,7 +19,15 @@ app.get("/scan", (req, res) => {
     if (code !== 0) {
       return res.status(500).json({ error });
     }
-    res.send(output); // return python script output
+
+    try {
+      const raw = JSON.parse(output);
+      const adjusted = adjustScanOutput(raw);
+      res.json(adjusted);
+    } catch (err) {
+      res.status(500).json({ error: "Invalid JSON from Python" });
+    }
+    //res.send(output); // return python script output
   });
 });
 
