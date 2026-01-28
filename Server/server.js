@@ -173,16 +173,36 @@ function resolvePythonScript() {
 app.get("/scan", (req, res) => {
   const input = req.query.domain || req.query.url || "netstar.ai";
 
-  // Extract domain from URL if full URL provided
-  let targetDomain = String(input);
-  try {
-    if (targetDomain.includes("://")) {
-      const u = new URL(targetDomain);
-      targetDomain = u.hostname;
+  /**
+   * Normalize user-provided domain/URL into a scan target.
+   *
+   * The scoring engine is domain-oriented (MAIL/RDAP/DNS in particular). If we
+   * pass a common web subdomain like "www.example.com", those endpoints can
+   * legitimately return very different (often worse) results than "example.com".
+   *
+   * For now we canonicalize by stripping a leading "www.".
+   */
+  function normalizeTargetDomain(raw) {
+    let targetDomain = String(raw ?? "").trim();
+
+    // Extract hostname from URL if full URL provided
+    try {
+      if (targetDomain.includes("://")) {
+        const u = new URL(targetDomain);
+        targetDomain = u.hostname;
+      }
+    } catch {
+      // If URL parsing fails, keep as-is
     }
-  } catch {
-    // If URL parsing fails, use as-is
+
+    targetDomain = targetDomain.toLowerCase();
+    if (targetDomain.startsWith("www.")) targetDomain = targetDomain.slice(4);
+    // Defensive: strip any trailing dot (rare but valid in DNS)
+    targetDomain = targetDomain.replace(/\.+$/, "");
+    return targetDomain || "netstar.ai";
   }
+
+  const targetDomain = normalizeTargetDomain(input);
 
   const pythonScript = resolvePythonScript();
   if (!pythonScript) {
