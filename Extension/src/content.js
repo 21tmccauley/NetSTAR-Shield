@@ -2,6 +2,7 @@
 
 const ALERT_ID = 'netstar-security-alert';
 const ALERT_DISMISSED_KEY = 'netstar-alert-dismissed';
+const DEBUG = false;
 
 // Function to create the alert overlay
 function createAlertOverlay(safetyScore, url) {
@@ -11,11 +12,13 @@ function createAlertOverlay(safetyScore, url) {
   // Check if user has dismissed this alert for this URL
   const dismissedKey = `${ALERT_DISMISSED_KEY}-${url}`;
   const dismissed = sessionStorage.getItem(dismissedKey);
-  console.log('[NetSTAR] Checking dismissal for URL:', url);
-  console.log('[NetSTAR] Dismissal key:', dismissedKey);
-  console.log('[NetSTAR] Dismissed status:', dismissed);
+  if (DEBUG) {
+    console.log('[NetSTAR] Checking dismissal for URL:', url);
+    console.log('[NetSTAR] Dismissal key:', dismissedKey);
+    console.log('[NetSTAR] Dismissed status:', dismissed);
+  }
   if (dismissed === 'true') {
-    console.log('[NetSTAR] Alert already dismissed, not showing');
+    if (DEBUG) console.log('[NetSTAR] Alert already dismissed, not showing');
     return; // Don't show if dismissed
   }
 
@@ -62,8 +65,10 @@ function createAlertOverlay(safetyScore, url) {
   backdrop.onclick = () => {
     // Close alert when backdrop is clicked
     sessionStorage.setItem(dismissedKey, 'true');
-    console.log('[NetSTAR] Alert dismissed (backdrop click) for URL:', url);
-    console.log('[NetSTAR] SessionStorage key set:', dismissedKey);
+    if (DEBUG) {
+      console.log('[NetSTAR] Alert dismissed (backdrop click) for URL:', url);
+      console.log('[NetSTAR] SessionStorage key set:', dismissedKey);
+    }
     removeAlert();
   };
 
@@ -317,8 +322,10 @@ function createAlertOverlay(safetyScore, url) {
   closeBtn.title = 'Dismiss alert';
   closeBtn.onclick = () => {
     sessionStorage.setItem(dismissedKey, 'true');
-    console.log('[NetSTAR] Alert dismissed for URL:', url);
-    console.log('[NetSTAR] SessionStorage key set:', dismissedKey);
+    if (DEBUG) {
+      console.log('[NetSTAR] Alert dismissed for URL:', url);
+      console.log('[NetSTAR] SessionStorage key set:', dismissedKey);
+    }
     removeAlert();
   };
 

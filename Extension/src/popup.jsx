@@ -7,7 +7,7 @@ import { ScanTab } from "@/components/tabs/ScanTab"
 import { SettingsTab } from "@/components/tabs/SettingsTab"
 import { Tour } from "@/components/Tour"
 import { Button } from "@/components/ui/button"
-import { Home, Search, Shield, Bell, Settings, MessageCircleQuestionMark } from "lucide-react"
+import { Home, Search, Shield, Settings, MessageCircleQuestionMark } from "lucide-react"
 /**
  * Text size accessibility setting (5-step discrete scale).
  *
@@ -259,7 +259,6 @@ function Popup() {
           {activeTab === "scan" && (
             <ScanTab mode={mode} onScanComplete={handleScanComplete} />
           )}
-          {activeTab === "alerts" && <AlertsTab mode={mode} />}
 
           {/**
             * SettingsTab receives the text size preference and its setter so that the General settings

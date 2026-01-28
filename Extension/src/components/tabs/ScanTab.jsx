@@ -51,11 +51,17 @@ export function ScanTab({ mode, onScanComplete }) {
       }
     });
 
-    chrome.storage.onChanged.addListener((changes, area) => {
+    const handleStorageChange = (changes, area) => {
       if (area === "local" && changes.recentScans) {
         setRecentScans(changes.recentScans.newValue || []);
       }
-    });
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
   }, []);
   
   /**
@@ -71,7 +77,7 @@ export function ScanTab({ mode, onScanComplete }) {
     setErrorMessage(null) // Clear any previous error
 
     chrome.runtime.sendMessage(
-      { action: "scanUrl", url:scanUrl },
+      { action: "scanUrl", url: scanUrl },
       (result) => {
         setIsScanning(false);
 
@@ -232,7 +238,7 @@ export function ScanTab({ mode, onScanComplete }) {
     </p>
   ) : (
     <div className="space-y-2">
-      {recentScans.reverse().map((site) => (
+      {[...recentScans].reverse().map((site) => (
         <button
           key={site.url}
           className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.02] ${

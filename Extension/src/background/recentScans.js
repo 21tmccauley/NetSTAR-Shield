@@ -4,14 +4,12 @@ import { ICON_THRESHOLDS } from "./constants.js";
  * Recent scans list
  */
 export function updateRecentScans(url, safetyScore) {
-  let safeStatus = "safe";
-  if (safetyScore >= ICON_THRESHOLDS.SAFE) {
-    safeStatus = "safe";
-  } else if (safetyScore >= ICON_THRESHOLDS.WARNING) {
-    safeStatus = "warning";
-  } else {
-    safeStatus = "danger";
-  }
+  const safeStatus =
+    safetyScore >= ICON_THRESHOLDS.SAFE
+      ? "safe"
+      : safetyScore >= ICON_THRESHOLDS.WARNING
+        ? "warning"
+        : "danger";
 
   chrome.storage.local.get("recentScans", (data) => {
     let recent = data.recentScans || [];
