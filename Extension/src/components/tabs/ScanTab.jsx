@@ -83,7 +83,8 @@ export function ScanTab({ mode, onScanComplete }) {
 
         // Only navigate to home if scan was successful
         if (onScanComplete && result && !result.error) {
-          onScanComplete(scanUrl);
+          // Pass both the URL and the scan results so Home can display the manual scan.
+          onScanComplete(scanUrl, result);
         }
       }
     );
