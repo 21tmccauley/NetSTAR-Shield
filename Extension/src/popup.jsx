@@ -7,7 +7,7 @@ import { ScanTab } from "@/components/tabs/ScanTab"
 import { SettingsTab } from "@/components/tabs/SettingsTab"
 import { Tour } from "@/components/Tour"
 import { Button } from "@/components/ui/button"
-import { Home, Search, Shield, Bell, Settings, MessageCircleQuestionMark } from "lucide-react"
+import { Home, Search, Shield, Settings, MessageCircleQuestionMark } from "lucide-react"
 /**
  * Text size accessibility setting (5-step discrete scale).
  *
@@ -30,6 +30,9 @@ function Popup() {
   const [isTourActive, setIsTourActive] = useState(false)
   const [forceShowIndicators, setForceShowIndicators] = useState(undefined)
   const [isLoaded, setIsLoaded] = useState(false)
+  // When a user runs a manual scan from the Scan tab, we want Home to show that URL + its score,
+  // not whatever tab is currently active in the browser.
+  const [manualScanContext, setManualScanContext] = useState(null) // { url: string, securityData: object }
   const [textSizeStep, setTextSizeStep] = useState(2) // 0..4, 2 = default
   const scrollContainerRef = useRef(null)
 
@@ -144,7 +147,8 @@ function Popup() {
     setActiveTab("home")
   }
 
-  const handleScanComplete = (url) => {
+  const handleScanComplete = (url, securityData) => {
+    setManualScanContext({ url, securityData })
     setActiveTab("home")
   }
 
@@ -241,7 +245,13 @@ function Popup() {
         {/* Tab Content */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
           {activeTab === "home" && (
-            <HomeTab mode={mode} onNavigate={handleNavigate} forceShowIndicators={forceShowIndicators} />
+            <HomeTab
+              mode={mode}
+              onNavigate={handleNavigate}
+              forceShowIndicators={forceShowIndicators}
+              overrideUrl={manualScanContext?.url}
+              overrideSecurityData={manualScanContext?.securityData}
+            />
           )}
           {activeTab === "details" && (
             <DetailsTab mode={mode} onBack={handleBack} indicator={selectedIndicator} />
@@ -249,7 +259,6 @@ function Popup() {
           {activeTab === "scan" && (
             <ScanTab mode={mode} onScanComplete={handleScanComplete} />
           )}
-          {activeTab === "alerts" && <AlertsTab mode={mode} />}
 
           {/**
             * SettingsTab receives the text size preference and its setter so that the General settings
@@ -289,7 +298,12 @@ function Popup() {
                   <button
                     key={tab.id}
                     id={tabButtonId}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      // Clicking Home explicitly should return to showing the current active tab,
+                      // rather than a prior manual scan target.
+                      if (tab.id === "home") setManualScanContext(null)
+                      setActiveTab(tab.id)
+                    }}
                     className={getTabButtonClasses(isActive)}
                   >
                     <Icon className={`h-5 w-5 ${isActive ? "scale-110" : ""}`} />
