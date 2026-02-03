@@ -27,16 +27,17 @@ run `python scoring_main.py -v` to get additional information on the execution o
 ## Fine-tune February  
 Listed below are all of the things that need attention:  
 * scoring_main.py
-  * Can probably be streamlined/improved
+  * Can probably be streamlined/improved --> **Koby**
 * **scoring_logic.py**
-  * Error handling needed for bad urls/expired websites
-  * implement gates on the chosen categories
-  * Implement scoring based on TLDs in dom_rep
-  * Implement scoring based on registrars in WHOIS_pattern
-  * cred_safety needs a rehaul
+  * Error handling needed for bad urls/expired websites --> **Katelyn**
+  * Implement gates on the chosen categories
+  * Implement scoring based on TLDs in dom_rep --> **FCFS**
+  * Implement scoring based on registrars in WHOIS_pattern --> **FCFS**
+  * cred_safety needs a rehaul --> **Kendel**
     * Repetitive scoring from conn_sec
   * Look into positive scoring to distinguish more between good/bad sites
   * Expand JSON output for the server
-  * conn_sec score = 1 may mean that data is not being processed correctly
+  * conn_sec score = 1 may mean that data is not being processed correctly --> **Cameron**
 * data_fetch.py
-  * Can probably be more streamlined 
+  * Can probably be more streamlined --> Koby
+
