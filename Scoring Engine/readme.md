@@ -9,7 +9,6 @@ As of December 8th, this code can do the following:
 
 What it is missing:
 * Exceptions are needed for when data is missing
-* The WHOIS Pattern scoring has not been implemented
 * All scoring needs to be reviewed and finetuned 
 * Adding in gates for the specified tools (once grading is migrated to tool format)
 * Bug Fix: Final score printing to screen creates duplicates
@@ -25,3 +24,19 @@ run `python scoring_main.py -t [TARGET URL]` to test against target URL
 
 run `python scoring_main.py -v` to get additional information on the execution of curl commands, reasons for score deductions, and runtime information
 
+## Fine-tune February  
+Listed below are all of the things that need attention:  
+* scoring_main.py
+  * Can probably be streamlined/improved
+* **scoring_logic.py**
+  * Error handling needed for bad urls/expired websites
+  * implement gates on the chosen categories
+  * Implement scoring based on TLDs in dom_rep
+  * Implement scoring based on registrars in WHOIS_pattern
+  * cred_safety needs a rehaul
+    * Repetitive scoring from conn_sec
+  * Look into positive scoring to distinguish more between good/bad sites
+  * Expand JSON output for the server
+  * conn_sec score = 1 may mean that data is not being processed correctly
+* data_fetch.py
+  * Can probably be more streamlined 
