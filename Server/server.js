@@ -21,66 +21,18 @@ function getStatusFromScore(score) {
   return "poor";
 }
 
-// Parse score_engine.py output (text-first, with optional JSON fallback).
+// Parse scoring engine stdout: expects a single JSON object { scores, Aggregated_Score }.
 function parseScoringOutput(output) {
-  // Optional: If Python ever emits JSON, try to parse it.
-  try {
-    const jsonMatch = output.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const jsonData = JSON.parse(jsonMatch[0]);
-      return {
-        scores: jsonData.scores && typeof jsonData.scores === "object" ? jsonData.scores : {},
-        aggregatedScore:
-          jsonData.Aggregated_Score != null ? Number(jsonData.Aggregated_Score) : null,
-      };
-    }
-  } catch {
-    // ignore and fall back to text parsing
+  const jsonMatch = output.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error("Scoring engine did not output valid JSON");
   }
-
-  const lines = output.split("\n");
-  const scores = {};
-  let aggregatedScore = null;
-
-  // Pattern: "AGGREGATED SECURITY SCORE: 95.5"
-  const aggMatch = output.match(/AGGREGATED\s+SECURITY\s+SCORE\s*:?\s*([\d.]+)/i);
-  if (aggMatch) aggregatedScore = parseFloat(aggMatch[1]);
-
-  const KNOWN_KEYS = new Set([
-    // "Scoring Engine" folder keys
-    "Connection_Security",
-    "Certificate_Health",
-    "DNS_Record_Health",
-    "Domain_Reputation",
-    "Credential_Safety",
-    "WHOIS_Pattern",
-    "IP_Reputation",
-    // Older keys
-    "Cert_Score",
-    "HVAL_Score",
-    "DNS_Score",
-    "Mail_Score",
-    "Method_Score",
-    "RDAP_Score",
-  ]);
-
-  // Pattern A: "Cert_Score      : 95" (or similar)
-  for (const line of lines) {
-    let match = line.match(/^(\w+_Score)\s*:?\s*([\d.]+)\s*$/);
-    if (!match) {
-      // Pattern B: "Connection_Security : 95.5" (or similar)
-      match = line.match(/^([A-Za-z][A-Za-z0-9_]+)\s*:?\s*([\d.]+)\s*$/);
-    }
-    if (!match) continue;
-
-    const scoreKey = match[1];
-    if (!KNOWN_KEYS.has(scoreKey)) continue;
-
-    const scoreValue = parseFloat(match[2]);
-    if (!Number.isNaN(scoreValue)) scores[scoreKey] = scoreValue;
-  }
-
-  return { scores, aggregatedScore };
+  const jsonData = JSON.parse(jsonMatch[0]);
+  return {
+    scores: jsonData.scores && typeof jsonData.scores === "object" ? jsonData.scores : {},
+    aggregatedScore:
+      jsonData.Aggregated_Score != null ? Number(jsonData.Aggregated_Score) : null,
+  };
 }
 
 // Map scoring engine keys to extension indicator ids/names.
@@ -303,7 +255,7 @@ app.get("/scan", (req, res) => {
           },
         };
         console.log(
-          `[${new Date().toISOString()}] [scan][score-response] ${JSON.stringify(debugPayload)}`
+          `[${new Date().toISOString()}] [scan][score-response] ${JSON.stringify(debugPayload, null, 2)}`
         );
       } catch {
         // Avoid breaking /scan responses due to logging issues
