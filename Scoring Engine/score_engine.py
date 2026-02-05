@@ -673,19 +673,23 @@ if __name__ == '__main__':
     elapsed_time = end_time - start_time
     # ----------------------------------------------------
 
-    print("\n--- Individual Scan Scores (Max 100) ---")
-    for key, value in final_scores.items():
-        if key != 'Aggregated_Score':
-            print(f"{key:<15}: {value}")
-            
-    print("\n-------------------------------------------")
-    print(f"AGGREGATED SECURITY SCORE: {final_scores.get('Aggregated_Score')}")
-    print("-------------------------------------------")
+    # Emit a single JSON object for the server (same contract as scoring_main.py).
+    scores_out = {k: v for k, v in final_scores.items() if k != "Aggregated_Score"}
+    payload = {
+        "scores": scores_out,
+        "Aggregated_Score": final_scores.get("Aggregated_Score"),
+    }
+    print(json.dumps(payload))
 
-    # ----------------------------------------------------
-    # PRINT THE ELAPSED TIME 
-    print(f"Total execution time: {elapsed_time:.2f} seconds")
-    print("-------------------------------------------")
+    # Human-readable summary to stderr (does not affect server parsing)
+    print("\n--- Individual Scan Scores (Max 100) ---", file=sys.stderr)
+    for key, value in final_scores.items():
+        if key != "Aggregated_Score":
+            print(f"{key:<15}: {value}", file=sys.stderr)
+    print("\n-------------------------------------------", file=sys.stderr)
+    print(f"AGGREGATED SECURITY SCORE: {final_scores.get('Aggregated_Score')}", file=sys.stderr)
+    print(f"Total execution time: {elapsed_time:.2f} seconds", file=sys.stderr)
+    print("-------------------------------------------", file=sys.stderr)
 
 
 ## --- Example of Expected 'all_scans' Structure ---
