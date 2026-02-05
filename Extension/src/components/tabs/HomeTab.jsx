@@ -300,6 +300,9 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
     setShowIndicators((openState) => !openState);
   };
 
+  const SafetyScoreStatus = getStatusFromScore(safetyScore);
+  const SafetyScoreColor = getColorClasses(SafetyScoreStatus);
+
   return (
     <div className="p-6">
       {/* Header with friendly greeting */}
@@ -319,7 +322,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
           <span className="break-all">
             {currentUrl}
           </span>{" "}
-          is looking good
+          is looking {SafetyScoreStatus}
         </p>
       </div>
 
@@ -336,7 +339,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
           <div className="inline-flex items-baseline gap-2 mb-2">
             <span 
               key={`score-${safetyScore}`}
-              className={`text-6xl font-bold bg-gradient-to-r ${getColorClasses(getStatusFromScore(safetyScore)).gradient} bg-clip-text text-transparent`}
+              className={`text-6xl font-bold bg-gradient-to-r ${SafetyScoreColor.gradient} bg-clip-text text-transparent`}
             >
               {safetyScore}
             </span>
@@ -361,7 +364,6 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
                 Math.max((safetyScore - i * 20) / 20, 0),
                 1
               );
-              const colors = getColorClasses(getStatusFromScore(safetyScore));
 
               return (
                 <div
@@ -372,7 +374,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
                 >
                   <div
                     className={`absolute inset-y-0 left-0 transition-all ${
-                      segmentFill > 0 ? `bg-gradient-to-r ${colors.gradient}` : ""
+                      segmentFill > 0 ? `bg-gradient-to-r ${SafetyScoreColor.gradient}` : ""
                     }`}
                     style={{ width: `${segmentFill * 100}%` }}
                   />
