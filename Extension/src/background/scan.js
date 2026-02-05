@@ -1,4 +1,4 @@
-import { CACHE_DURATION_MS } from "./constants.js";
+import { CACHE_DURATION_MS, SCAN_API_BASE } from "./constants.js";
 
 function normalizeScanDomain(rawInput) {
   let raw = String(rawInput ?? "").trim();
@@ -49,18 +49,11 @@ export async function getCachedOrScan(url) {
 export async function performSecurityScan(url) {
   const domain = normalizeScanDomain(url);
 
-  // The IP address used in this fetch may have to change if the IP of the server changes.
-  // NOTE: fetch() requires a scheme (http/https). Also, the server accepts full URLs via ?url=...
-  // Remote server:
-  // const response = await fetch(
-  //   `http://69.164.202.138:3000/scan?url=${encodeURIComponent(url)}`
-  // );
-  // Local dev:
   // Prefer domain-based scans so the scoring engine doesn't get "www." subdomains for
   // mail/rdap/dns checks (which can produce dramatically different scores).
   const endpoint = domain
-    ? `http://localhost:3000/scan?domain=${encodeURIComponent(domain)}`
-    : `http://localhost:3000/scan?url=${encodeURIComponent(url)}`;
+    ? `${SCAN_API_BASE}/scan?domain=${encodeURIComponent(domain)}`
+    : `${SCAN_API_BASE}/scan?url=${encodeURIComponent(url)}`;
   const startedAt = Date.now();
   console.log("[NetSTAR][scan] Requesting:", endpoint);
 

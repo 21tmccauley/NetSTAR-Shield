@@ -170,50 +170,50 @@ app.get("/scan", (req, res) => {
 
   console.log(`[${new Date().toISOString()}] Scanning: ${targetDomain}`);
 
-  const py = spawn("python3", [pythonScript, "-t", targetDomain], {
-    // Run from the script's directory so relative imports/files work.
-    cwd: path.dirname(pythonScript),
-  });
+  // Try multiple python executables in order to be robust across systems.
+  // On Windows users may have 'python', the 'py' launcher, or rarely 'python3'.
+  // On Unix-like systems prefer 'python3' then 'python'. We attempt each
+  // candidate and fall back on ENOENT until one successfully spawns.
+  function spawnPythonWithFallback(scriptPath, argv, options) {
+    const candidates = process.platform === "win32" ? ["python", "py", "python3"] : ["python3", "python"];
+    let idx = 0;
+    return new Promise((resolve, reject) => {
+      const tryOne = () => {
+        if (idx >= candidates.length) return reject(new Error("No suitable Python executable found"));
+        const cmd = candidates[idx++];
+        const child = spawn(cmd, [scriptPath, ...argv], options);
 
-  let output = "";
-  let error = "";
+        // If the process fails to spawn because the binary doesn't exist,
+        // Node emits an 'error' with code 'ENOENT'. Try the next candidate.
+        child.once("error", (err) => {
+          if (err && err.code === "ENOENT") {
+            tryOne();
+          } else {
+            reject(err);
+          }
+        });
+
+        // Only resolve once the process has actually spawned.
+        child.once("spawn", () => resolve(child));
+      };
+      tryOne();
+    });
+  }
+
   let responded = false;
 
-  py.stdout.on("data", (data) => {
-    output += data.toString();
-  });
-  py.stderr.on("data", (data) => {
-    error += data.toString();
-  });
+  spawnPythonWithFallback(pythonScript, ["-t", targetDomain], {
+    cwd: path.dirname(pythonScript),
+  })
+    .then((py) => {
+      let output = "";
+      let error = "";
 
-  // Timeout after 60 seconds
-  const timeout = setTimeout(() => {
-    if (responded) return;
-    responded = true;
-    py.kill();
-    res.status(504).json({
-      error: true,
-      message: "Scan timeout - scoring engine took too long",
-      safetyScore: 0,
-      aggregatedScore: 0,
-      indicators: [],
-      timestamp: Date.now(),
-    });
-  }, 60000);
-
-  py.on("close", (code) => {
-    clearTimeout(timeout);
-    if (responded) return;
-    responded = true;
-
-    if (code !== 0 || /Traceback|Error/i.test(error)) {
-      return res.status(500).json({
-        error: true,
-        message: error || `Scoring engine failed (exit code ${code})`,
-        safetyScore: 0,
-        aggregatedScore: 0,
-        indicators: [],
-        timestamp: Date.now(),
+      py.stdout.on("data", (data) => {
+        output += data.toString();
+      });
+      py.stderr.on("data", (data) => {
+        error += data.toString();
       });
     }
 
@@ -261,18 +261,106 @@ app.get("/scan", (req, res) => {
         // Avoid breaking /scan responses due to logging issues
       }
 
-      return res.json(response);
-    } catch (e) {
+      // Timeout after 60 seconds
+      const timeout = setTimeout(() => {
+        if (responded) return;
+        responded = true;
+        try {
+          py.kill();
+        } catch {}
+        res.status(504).json({
+          error: true,
+          message: "Scan timeout - scoring engine took too long",
+          safetyScore: 0,
+          aggregatedScore: 0,
+          indicators: [],
+          timestamp: Date.now(),
+        });
+      }, 60000);
+
+      py.on("close", (code) => {
+        clearTimeout(timeout);
+        if (responded) return;
+        responded = true;
+
+        if (code !== 0 || /Traceback|Error/i.test(error)) {
+          return res.status(500).json({
+            error: true,
+            message: error || `Scoring engine failed (exit code ${code})`,
+            safetyScore: 0,
+            aggregatedScore: 0,
+            indicators: [],
+            timestamp: Date.now(),
+          });
+        }
+
+        try {
+          const { scores, aggregatedScore } = parseScoringOutput(output);
+          const response = formatForExtension(scores, aggregatedScore);
+
+          // Debug: log the exact score payload we're about to return
+          try {
+            const debugPayload = {
+              request: {
+                method: req.method,
+                path: req.path,
+                originalUrl: req.originalUrl,
+                query: req.query,
+                ip: req.ip,
+                headers: {
+                  "user-agent": req.get("user-agent"),
+                  origin: req.get("origin"),
+                  referer: req.get("referer"),
+                },
+              },
+              targetDomain,
+              input: String(input),
+              aggregatedScoreParsed: Number.isFinite(aggregatedScore) ? aggregatedScore : null,
+              response: {
+                safetyScore: response?.safetyScore,
+                aggregatedScore: response?.aggregatedScore,
+                indicatorsCount: Array.isArray(response?.indicators) ? response.indicators.length : 0,
+                indicators: Array.isArray(response?.indicators)
+                  ? response.indicators.map((i) => ({
+                      id: i?.id,
+                      name: i?.name,
+                      score: i?.score,
+                      status: i?.status,
+                    }))
+                  : [],
+                timestamp: response?.timestamp,
+              },
+            };
+            console.log(
+              `[${new Date().toISOString()}] [scan][score-response] ${JSON.stringify(debugPayload)}`
+            );
+          } catch {
+            // Avoid breaking /scan responses due to logging issues
+          }
+
+          return res.json(response);
+        } catch (e) {
+          return res.status(500).json({
+            error: true,
+            message: `Failed to parse scoring results: ${e.message}`,
+            safetyScore: 0,
+            aggregatedScore: 0,
+            indicators: [],
+            timestamp: Date.now(),
+          });
+        }
+      });
+    })
+    .catch((err) => {
       return res.status(500).json({
         error: true,
-        message: `Failed to parse scoring results: ${e.message}`,
+        message: `Failed to start python scoring engine: ${err.message}`,
         safetyScore: 0,
         aggregatedScore: 0,
         indicators: [],
         timestamp: Date.now(),
       });
-    }
-  });
+    });
 });
 
 // Health check endpoint

@@ -453,3 +453,15 @@
 
   justify-content: flex-end;
 }
+
+.url-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+.url-scroll::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5); /* slate-ish */
+  border-radius: 999px;
+}
+.url-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+

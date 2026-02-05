@@ -313,10 +313,13 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
         </h2>
         <p
           className={`text-sm ${
-            mode === "dark" ? "text-slate-200" : "text-brand-600"
+            mode === "dark" ? "text-slate-200" : "text-brand-900"
           }`}
         >
-          {currentUrl} is looking good
+          <span className="break-all">
+            {currentUrl}
+          </span>{" "}
+          is looking good
         </p>
       </div>
 
