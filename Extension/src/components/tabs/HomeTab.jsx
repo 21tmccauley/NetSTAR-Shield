@@ -302,6 +302,13 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
 
   const SafetyScoreStatus = getStatusFromScore(safetyScore);
   const SafetyScoreColor = getColorClasses(SafetyScoreStatus);
+  const SafetyScoreHeaderList = {"excellent": "You\'re Safe Here!",
+    "good": "You Should Be Confident!",
+    "moderate":"You Should Take Some Precaution.",
+    "poor": "You Might Not Be Safe."
+  };
+  const SecurityScoreHeaderPhrase = SafetyScoreHeaderList[String(SafetyScoreStatus).toLowerCase()] ?? "";
+
 
   return (
     <div className="p-6">
@@ -312,7 +319,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
             mode === "dark" ? "text-white" : "text-slate-900"
           }`}
         >
-          You're Safe Here!
+          {SecurityScoreHeaderPhrase}
         </h2>
         <p
           className={`text-sm ${
