@@ -1,5 +1,6 @@
 import sys
 import argparse
+import json
 import time
 from datetime import datetime
 from typing import Dict
@@ -114,14 +115,9 @@ if __name__ == '__main__':
 
     if app_config.VERBOSE:
         print("\n--- Individual Scan Scores (Max 100) ---", file=sys.stderr)
-    for key, value in final_scores.items():
-        if key != 'Aggregated_Score':
-            print(f"\"{key:<15}\": \"{value}\"")
-
-    if app_config.VERBOSE:        
-        print("\n-------------------------------------------", file=sys.stderr)
-    
-    print(f"\"aggregatedScore\": \"{final_scores.get('Aggregated_Score')}\"")
+    output = {k: v for k, v in final_scores.items() if k != 'Aggregated_Score'}
+    output['aggregatedScore'] = final_scores.get('Aggregated_Score')
+    print(json.dumps(output, indent=2))
     if app_config.VERBOSE:
         print("-------------------------------------------", file=sys.stderr)
 
