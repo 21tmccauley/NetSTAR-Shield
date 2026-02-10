@@ -42,5 +42,7 @@ Listed below are all of the things that need attention:
   * Can probably be more streamlined --> Koby
 * With subdomain `speeches.byu.edu` rdap doesn't return anything
   * The rdap is connected with `byu.edu`
+* Build in FireHOL for IP Reputation
+
 
 
