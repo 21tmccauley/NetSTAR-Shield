@@ -40,4 +40,9 @@ Listed below are all of the things that need attention:
   * conn_sec score = 1 may mean that data is not being processed correctly --> **Cameron**
 * data_fetch.py
   * Can probably be more streamlined --> Koby
+* With subdomain `speeches.byu.edu` rdap doesn't return anything
+  * The rdap is connected with `byu.edu`
+* Build in FireHOL for IP Reputation
+
+
 

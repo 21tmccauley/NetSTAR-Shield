@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "pack": "npm run build && cd dist && zip -r ../netstar-shield-webstore.zip . && cd ..",
     "preview": "vite preview",
     "docs": "jsdoc -c jsdoc.config.json",
     "docs:watch": "jsdoc -c jsdoc.config.json --watch"

@@ -248,15 +248,20 @@ export function ScanTab({ mode, onScanComplete }) {
           }`}
           onClick={() => setScanUrl(site.url.startsWith("http") ? site.url : `https://${site.url}`)}
         >
-          <span
-            className={`text-sm flex-1 text-left ${
+          {/* URL area scrolls, badge stays put */}
+          <div
+            className={`flex-1 min-w-0 overflow-x-auto whitespace-nowrap url-scroll ${
               mode === "dark" ? "text-white" : "text-slate-900"
             }`}
+            title={site.url.match(/^(?:https?:\/\/)?([^/]+)/)?.[1] || site.url}
           >
-            {site.url.match(/^(?:https?:\/\/)?([^\/]+)/)?.[1] || site.url}
-          </span>
+            <span className="text-sm">
+              {site.url.match(/^(?:https?:\/\/)?([^/]+)/)?.[1] || site.url}
+            </span>
+          </div>
+
           <Badge
-            className={`text-xs font-medium px-2 py-1 rounded-full ${
+            className={`text-xs font-medium px-2 py-1 rounded-full flex-shrink-0 ${
               site.safe === "safe"
                 ? "bg-green-100 text-green-800 border-green-300"
                 : site.safe === "warning"
@@ -264,11 +269,7 @@ export function ScanTab({ mode, onScanComplete }) {
                 : "bg-red-100 text-red-800 border-red-300"
             }`}
           >
-            {site.safe === "safe"
-              ? "Safe"
-              : site.safe === "warning"
-              ? "Warning"
-              : "Danger"}
+            {site.safe === "safe" ? "Safe" : site.safe === "warning" ? "Warning" : "Danger"}
           </Badge>
         </button>
       ))}

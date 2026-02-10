@@ -1,3 +1,4 @@
+import json
 import sys
 import argparse
 import json
@@ -113,17 +114,17 @@ if __name__ == '__main__':
     elapsed_time = end_time - start_time
     # ----------------------------------------------------
 
-    if app_config.VERBOSE:
-        print("\n--- Individual Scan Scores (Max 100) ---", file=sys.stderr)
+    # Emit a single JSON object for the server (no text parsing needed).
     output = {k: v for k, v in final_scores.items() if k != 'Aggregated_Score'}
     output['aggregatedScore'] = final_scores.get('Aggregated_Score')
     print(json.dumps(output, indent=2))
-    if app_config.VERBOSE:
-        print("-------------------------------------------", file=sys.stderr)
 
-    # ----------------------------------------------------
-    # PRINT THE ELAPSED TIME 
     if app_config.VERBOSE:
+        print("\n--- Individual Scan Scores (Max 100) ---", file=sys.stderr)
+        for key, value in final_scores.items():
+            if key != "Aggregated_Score":
+                print(f"  {key}: {value}", file=sys.stderr)
+        print("-------------------------------------------", file=sys.stderr)
         print(f"Total execution time: {elapsed_time:.2f} seconds", file=sys.stderr)
         print("-------------------------------------------", file=sys.stderr)
 
