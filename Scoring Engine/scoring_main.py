@@ -74,7 +74,7 @@ if __name__ == '__main__':
     )
     
     args = parser.parse_args()
-    app_config.VERBOSE = args.verbose #testing
+    app_config.VERBOSE = args.verbose
     
     all_scans = {}
     scan_date = None
@@ -120,10 +120,16 @@ if __name__ == '__main__':
     print(json.dumps(output, indent=2))
 
     if app_config.VERBOSE:
-        print("\n--- Individual Scan Scores (Max 100) ---", file=sys.stderr)
-        for key, value in final_scores.items():
-            if key != "Aggregated_Score":
-                print(f"  {key}: {value}", file=sys.stderr)
+        print("\n--- Individual Scan Scores ---", file=sys.stderr)
+    for key, value in final_scores.items():
+        if key != 'Aggregated_Score':
+            print(f"\"{key:<15}\": \"{value}\"")
+
+    if app_config.VERBOSE:        
+        print("\n-------------------------------------------", file=sys.stderr)
+    
+    print(f"\"aggregatedScore\": \"{final_scores.get('Aggregated_Score')}\"")
+    if app_config.VERBOSE:
         print("-------------------------------------------", file=sys.stderr)
         print(f"Total execution time: {elapsed_time:.2f} seconds", file=sys.stderr)
         print("-------------------------------------------", file=sys.stderr)
