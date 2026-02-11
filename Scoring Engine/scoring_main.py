@@ -1,6 +1,7 @@
 import json
 import sys
 import argparse
+import json
 import time
 from datetime import datetime
 from typing import Dict
@@ -114,12 +115,9 @@ if __name__ == '__main__':
     # ----------------------------------------------------
 
     # Emit a single JSON object for the server (no text parsing needed).
-    scores_out = {k: v for k, v in final_scores.items() if k != "Aggregated_Score"}
-    payload = {
-        "scores": scores_out,
-        "Aggregated_Score": final_scores.get("Aggregated_Score"),
-    }
-    print(json.dumps(payload))
+    output = {k: v for k, v in final_scores.items() if k != 'Aggregated_Score'}
+    output['aggregatedScore'] = final_scores.get('Aggregated_Score')
+    print(json.dumps(output, indent=2))
 
     if app_config.VERBOSE:
         print("\n--- Individual Scan Scores (Max 100) ---", file=sys.stderr)
