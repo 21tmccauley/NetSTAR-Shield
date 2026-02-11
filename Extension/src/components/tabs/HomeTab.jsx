@@ -316,7 +316,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
     "moderate":"You Should Take Some Precaution.",
     "poor": "You Might Not Be Safe."
   };
-  const SecurityScoreHeaderPhrase = SafetyScoreHeaderList[String(SafetyScoreStatus).toLowerCase()] ?? "";
+  const SecurityScoreHeaderPhrase = getDetailedStatusMessage(String(SafetyScoreStatus).toLowerCase()) ?? "";
 
 
   return (
@@ -338,7 +338,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
           <span className="break-all">
             {currentUrl}
           </span>{" "}
-          is looking {SafetyScoreStatus}
+            Loading URL
         </p>
       </div>
 
