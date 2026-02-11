@@ -392,9 +392,9 @@
 
 /* WebKit (Chrome/Edge) */
 .textsize-range::-webkit-slider-runnable-track {
-  height: 4px;
+  height: 5.5px;
   border-radius: 9999px;
-  background: var(--ts-track, rgba(148, 163, 184, 0.6));
+  /* background: var(--ts-track, rgba(148, 163, 184, 0.6)); */
 }
 
 .textsize-range::-webkit-slider-thumb {
@@ -411,9 +411,9 @@
 
 /* Firefox */
 .textsize-range::-moz-range-track {
-  height: 4px;
+  height: 5.5px;
   border-radius: 9999px;
-  background: var(--ts-track, rgba(148, 163, 184, 0.6));
+  /* background: var(--ts-track, rgba(148, 163, 184, 0.6)); */
 }
 
 .textsize-range::-moz-range-thumb {
