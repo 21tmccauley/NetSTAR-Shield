@@ -21,18 +21,46 @@ function getStatusFromScore(score) {
   return "poor";
 }
 
-// Parse scoring engine stdout: expects a single JSON object { scores, Aggregated_Score }.
+// Known top-level score keys from scoring_main.py (excluding aggregatedScore).
+const SCORING_ENGINE_KEYS = [
+  "Connection_Security",
+  "Certificate_Health",
+  "DNS_Record_Health",
+  "Domain_Reputation",
+  "WHOIS_Pattern",
+  "IP_Reputation",
+  "Credential_Safety",
+];
+
+// Parse scoring engine stdout. Accepts either:
+// - New format: top-level score keys + "aggregatedScore" (from scoring_main.py)
+// - Legacy: "scores" object + "Aggregated_Score"
 function parseScoringOutput(output) {
   const jsonMatch = output.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error("Scoring engine did not output valid JSON");
   }
   const jsonData = JSON.parse(jsonMatch[0]);
-  return {
-    scores: jsonData.scores && typeof jsonData.scores === "object" ? jsonData.scores : {},
-    aggregatedScore:
-      jsonData.Aggregated_Score != null ? Number(jsonData.Aggregated_Score) : null,
-  };
+
+  let scores = {};
+  if (jsonData.scores && typeof jsonData.scores === "object") {
+    scores = jsonData.scores;
+  } else {
+    for (const key of SCORING_ENGINE_KEYS) {
+      if (jsonData[key] != null && typeof jsonData[key] === "number") {
+        scores[key] = jsonData[key];
+      }
+    }
+  }
+
+  const aggregatedScore =
+    jsonData.aggregatedScore != null
+      ? Number(jsonData.aggregatedScore)
+      : jsonData.Aggregated_Score != null
+        ? Number(jsonData.Aggregated_Score)
+        : null;
+
+  return { scores, aggregatedScore };
 }
 
 // Map scoring engine keys to extension indicator ids/names.
