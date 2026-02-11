@@ -132,7 +132,7 @@ export function ScanTab({ mode, onScanComplete }) {
           </label>
           <Input
             type="text"
-            placeholder="https://example.com"
+            placeholder="example.com"
             value={scanUrl}
             onChange={(e) => {
               setScanUrl(e.target.value)
