@@ -21,18 +21,46 @@ function getStatusFromScore(score) {
   return "poor";
 }
 
-// Parse scoring engine stdout: expects a single JSON object { scores, Aggregated_Score }.
+// Known top-level score keys from scoring_main.py (excluding aggregatedScore).
+const SCORING_ENGINE_KEYS = [
+  "Connection_Security",
+  "Certificate_Health",
+  "DNS_Record_Health",
+  "Domain_Reputation",
+  "WHOIS_Pattern",
+  "IP_Reputation",
+  "Credential_Safety",
+];
+
+// Parse scoring engine stdout. Accepts either:
+// - New format: top-level score keys + "aggregatedScore" (from scoring_main.py)
+// - Legacy: "scores" object + "Aggregated_Score"
 function parseScoringOutput(output) {
   const jsonMatch = output.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error("Scoring engine did not output valid JSON");
   }
   const jsonData = JSON.parse(jsonMatch[0]);
-  return {
-    scores: jsonData.scores && typeof jsonData.scores === "object" ? jsonData.scores : {},
-    aggregatedScore:
-      jsonData.Aggregated_Score != null ? Number(jsonData.Aggregated_Score) : null,
-  };
+
+  let scores = {};
+  if (jsonData.scores && typeof jsonData.scores === "object") {
+    scores = jsonData.scores;
+  } else {
+    for (const key of SCORING_ENGINE_KEYS) {
+      if (jsonData[key] != null && typeof jsonData[key] === "number") {
+        scores[key] = jsonData[key];
+      }
+    }
+  }
+
+  const aggregatedScore =
+    jsonData.aggregatedScore != null
+      ? Number(jsonData.aggregatedScore)
+      : jsonData.Aggregated_Score != null
+        ? Number(jsonData.Aggregated_Score)
+        : null;
+
+  return { scores, aggregatedScore };
 }
 
 // Map scoring engine keys to extension indicator ids/names.
@@ -215,51 +243,6 @@ app.get("/scan", (req, res) => {
       py.stderr.on("data", (data) => {
         error += data.toString();
       });
-    }
-
-    try {
-      const { scores, aggregatedScore } = parseScoringOutput(output);
-      const response = formatForExtension(scores, aggregatedScore);
-
-      // Debug: log the exact score payload we're about to return
-      try {
-        const debugPayload = {
-          request: {
-            method: req.method,
-            path: req.path,
-            originalUrl: req.originalUrl,
-            query: req.query,
-            ip: req.ip,
-            headers: {
-              "user-agent": req.get("user-agent"),
-              origin: req.get("origin"),
-              referer: req.get("referer"),
-            },
-          },
-          targetDomain,
-          input: String(input),
-          aggregatedScoreParsed: Number.isFinite(aggregatedScore) ? aggregatedScore : null,
-          response: {
-            safetyScore: response?.safetyScore,
-            aggregatedScore: response?.aggregatedScore,
-            indicatorsCount: Array.isArray(response?.indicators) ? response.indicators.length : 0,
-            indicators: Array.isArray(response?.indicators)
-              ? response.indicators.map((i) => ({
-                  id: i?.id,
-                  name: i?.name,
-                  score: i?.score,
-                  status: i?.status,
-                }))
-              : [],
-            timestamp: response?.timestamp,
-          },
-        };
-        console.log(
-          `[${new Date().toISOString()}] [scan][score-response] ${JSON.stringify(debugPayload, null, 2)}`
-        );
-      } catch {
-        // Avoid breaking /scan responses due to logging issues
-      }
 
       // Timeout after 60 seconds
       const timeout = setTimeout(() => {
