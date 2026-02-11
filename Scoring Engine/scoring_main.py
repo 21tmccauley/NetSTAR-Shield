@@ -56,6 +56,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Get a security and infrastructure score for a target domain."
     )
+    # The -t/--target value is expected to be a pre-sanitized hostname
+    # provided by the server (no scheme, no path, no "www." prefix).
+    # All normalization and validation happens in server.js before this
+    # script is invoked.  See Docs/url-sanitization-policy.md.
     parser.add_argument(
         '-t', '--target',
         type=str,
