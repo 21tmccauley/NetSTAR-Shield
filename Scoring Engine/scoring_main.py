@@ -72,7 +72,7 @@ if __name__ == '__main__':
     )
     
     args = parser.parse_args()
-    app_config.VERBOSE = args.verbose #testing
+    app_config.VERBOSE = args.verbose
     
     all_scans = {}
     scan_date = None
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     # ----------------------------------------------------
 
     if app_config.VERBOSE:
-        print("\n--- Individual Scan Scores (Max 100) ---", file=sys.stderr)
+        print("\n--- Individual Scan Scores ---", file=sys.stderr)
     for key, value in final_scores.items():
         if key != 'Aggregated_Score':
             print(f"\"{key:<15}\": \"{value}\"")

@@ -102,20 +102,7 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
         if app_config.VERBOSE:
             print(f"--> Endpoint {endpoint.upper()} failed execution. Skipping.", file=sys.stderr)
         return (None, None)
-    
-    
-    # # 3. Define the cURL command
-    # CURL_COMMAND = ['curl', '-s', full_url]
 
-    # print(f"\n[Processing Endpoint: {endpoint.upper()}]")
-
-    # # 4. Execute the command
-    # output = execute_curl_command(CURL_COMMAND)
-    
-    # if output is None:
-    #     print(f"--> Endpoint {endpoint.upper()} failed execution. Skipping.")
-    #     return (None, None)
-    
     # 5. Parse the JSON output
     try:
         data = json.loads(output)

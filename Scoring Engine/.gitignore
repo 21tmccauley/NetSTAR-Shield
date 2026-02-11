@@ -1,3 +1,6 @@
 #cache files produced locally when scoring engine is run
 *.pyc
 __pycache__/
+batch_run.py
+url_batch.txt
+all_scores.txt
