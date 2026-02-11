@@ -13,7 +13,7 @@ import {
   FileUser,
   NotebookText,
 } from "lucide-react";
-import { getStatusFromScore, getStatusMessage } from "@/lib/securityUtils";
+import { getStatusFromScore, getStatusMessage, getDetailedStatusMessage } from "@/lib/securityUtils";
 import { getColorClasses } from "@/lib/themeUtils";
 import { DEFAULT_INDICATOR_DATA } from "@/lib/constants";
 
@@ -71,6 +71,9 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
   /** Security safety score (0-100), default is 87 */
   const [safetyScore, setSafetyScore] = useState(87);
   
+  /** True while fetching/refreshing security data */
+  const [isFetchingScore, setIsFetchingScore] = useState(true);
+
   /** Complete security scan data including indicators and metadata, or null if not loaded */
   const [securityData, setSecurityData] = useState(null);
 
@@ -134,6 +137,9 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
     };
 
     const run = async () => {
+      // Show loading spinner any time we kick off a fetch/refresh.
+      setIsFetchingScore(true);
+
       // If the popup is showing a manual scan target, prefer that over "current tab".
       if (overrideUrl) {
         setHostnameFromUrl(overrideUrl);
@@ -141,6 +147,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
         if (overrideSecurityData?.safetyScore !== undefined) {
           setSafetyScore(overrideSecurityData.safetyScore);
           setSecurityData(overrideSecurityData);
+          setIsFetchingScore(false);
           return;
         }
 
@@ -159,6 +166,8 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
           } catch (error) {
             // Ignore and keep defaults; UI still renders.
             console.error("Error getting manual scan data:", error);
+          } finally {
+              if (isMounted) setIsFetchingScore(false);
           }
         }
 
@@ -344,12 +353,27 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
       >
         <div className="text-center">
           <div className="inline-flex items-baseline gap-2 mb-2">
-            <span 
-              key={`score-${safetyScore}`}
-              className={`text-6xl font-bold bg-gradient-to-r ${SafetyScoreColor.gradient} bg-clip-text text-transparent`}
-            >
-              {safetyScore}
-            </span>
+            <div className="inline-flex items-baseline gap-2 mb-2">
+              {isFetchingScore ? (
+                <span
+                  className={`inline-flex items-center justify-center w-[4.25rem] h-[4.25rem] ${
+                    mode === "dark" ? "text-slate-100" : "text-brand-600"
+                  }`}
+                  aria-label="Loading safety score"
+                  role="status"
+                >
+                  <span className="w-10 h-10 border-4 border-current border-t-transparent rounded-full animate-spin" />
+                </span>
+              ) : (
+                <span
+                  key={`score-${safetyScore}`}
+                  className={`text-6xl font-bold bg-gradient-to-r ${SafetyScoreColor.gradient} bg-clip-text text-transparent`}
+                >
+                  {safetyScore}
+                </span>
+              )}
+            </div>
+
             <span
               className={`text-2xl font-medium ${
                 mode === "dark" ? "text-slate-100" : "text-brand-600"
