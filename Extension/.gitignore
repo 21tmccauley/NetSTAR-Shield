@@ -20,6 +20,7 @@
 # production
 /build
 /dist
+netstar-shield-webstore.zip
 
 # misc
 .DS_Store
