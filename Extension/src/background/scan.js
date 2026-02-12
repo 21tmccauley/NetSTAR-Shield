@@ -1,24 +1,5 @@
 import { CACHE_DURATION_MS, SCAN_API_BASE } from "./constants.js";
-
-function normalizeScanDomain(rawInput) {
-  let raw = String(rawInput ?? "").trim();
-  if (!raw) return "";
-
-  // If it's already a URL, use it directly.
-  // If it's a bare domain (e.g., "capitalone.com"), prepend a scheme so URL() can parse it.
-  let hostname = raw;
-  try {
-    const u = raw.includes("://") ? new URL(raw) : new URL(`https://${raw}`);
-    hostname = u.hostname;
-  } catch {
-    // If parsing fails, fall back to raw (best effort).
-    hostname = raw;
-  }
-
-  hostname = String(hostname).toLowerCase().replace(/\.+$/, "");
-  if (hostname.startsWith("www.")) hostname = hostname.slice(4);
-  return hostname;
-}
+import { normalizeScanDomain } from "./urlNormalize.js";
 
 /**
  * Cache and scan entry points

@@ -22,6 +22,17 @@ export function registerMessageListeners() {
     if (request.action === "scanUrl") {
       (async () => {
         try {
+          // ── Manual-scan validation ────────────────────────────────────
+          // Block inputs that don't contain a letter-based TLD (e.g.
+          // ".com", ".org", ".co.uk"). This rejects:
+          //   • Single words with no dot  ("hello")
+          //   • Plain IP addresses        ("192.168.1.1", "::1")
+          //   • Strings with only numeric TLDs or no TLD at all
+          //
+          // Plain IPs are intentionally blocked for now; this may change
+          // in a future version. See Docs/url-sanitization-policy.md.
+          // The server also validates and will return 400 for anything
+          // that slips past this check.
           if (!/\.[a-z]{2,}/i.test(request.url)) {
             console.log("Invalid URL entered:", request.url);
             sendResponse({
