@@ -70,9 +70,6 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
   
   /** Security safety score (0-100), default is 87 */
   const [safetyScore, setSafetyScore] = useState(87);
-  
-  /** True while fetching/refreshing security data */
-  const [isFetchingScore, setIsFetchingScore] = useState(true);
 
   /** Complete security scan data including indicators and metadata, or null if not loaded */
   const [securityData, setSecurityData] = useState(null);
@@ -137,8 +134,6 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
     };
 
     const run = async () => {
-      // Show loading spinner any time we kick off a fetch/refresh.
-      setIsFetchingScore(true);
 
       // If the popup is showing a manual scan target, prefer that over "current tab".
       if (overrideUrl) {
@@ -147,7 +142,6 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
         if (overrideSecurityData?.safetyScore !== undefined) {
           setSafetyScore(overrideSecurityData.safetyScore);
           setSecurityData(overrideSecurityData);
-          setIsFetchingScore(false);
           return;
         }
 
@@ -166,8 +160,6 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
           } catch (error) {
             // Ignore and keep defaults; UI still renders.
             console.error("Error getting manual scan data:", error);
-          } finally {
-              if (isMounted) setIsFetchingScore(false);
           }
         }
 
@@ -311,12 +303,9 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
 
   const SafetyScoreStatus = getStatusFromScore(safetyScore);
   const SafetyScoreColor = getColorClasses(SafetyScoreStatus);
-  const SafetyScoreHeaderList = {"excellent": "You\'re Safe Here!",
-    "good": "You Should Be Confident!",
-    "moderate":"You Should Take Some Precaution.",
-    "poor": "You Might Not Be Safe."
-  };
-  const SecurityScoreHeaderPhrase = getDetailedStatusMessage(String(SafetyScoreStatus).toLowerCase()) ?? "";
+  const SecurityScoreHeaderPhrase = (securityData !== undefined ? (
+    getDetailedStatusMessage(String(SafetyScoreStatus).toLowerCase())) :
+    ( "Loading URL Score"));
 
 
   return (
@@ -335,10 +324,15 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
             mode === "dark" ? "text-slate-200" : "text-brand-900"
           }`}
         >
-          <span className="break-all">
-            {currentUrl}
-          </span>{" "}
-            Loading URL
+          {securityData !== undefined ? (
+            <>
+              Scanned <span className="break-all">{currentUrl}</span>
+            </>
+          ) : (
+            <>
+              Scanning <span className="break-all">{currentUrl}</span>
+            </>
+          )}
         </p>
       </div>
 
@@ -354,7 +348,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
         <div className="text-center">
           <div className="inline-flex items-baseline gap-2 mb-2">
             <div className="inline-flex items-baseline gap-2 mb-2">
-              {isFetchingScore ? (
+              {securityData == undefined ? (
                 <span
                   className={`inline-flex items-center justify-center w-[4.25rem] h-[4.25rem] ${
                     mode === "dark" ? "text-slate-100" : "text-brand-600"
