@@ -13,39 +13,93 @@ from scoring_logic import calculate_security_score
 
 # --- Test Data ---
 test_scans = {
-    # Cert Scan Sample (Healthy, 61 days to expiration from 2025-10-15)
     'cert_scan': {
-        "not_after":"2025-12-15T20:07:01.252",
-        "not_before":"2025-09-16T20:11:24"
+        'host': 'amazon.com',
+        'port': 443,
+        'timestamp': '2026-02-18T16:06:49Z',
+        'connection': {
+            'tls_version': 'TLS 1.3', 
+            'cipher_suite': 'TLS_AES_128_GCM_SHA256'
+        },
+        'verification': {
+            'hostname_checked': 'amazon.com',
+            'hostname_matches': True,
+            'chain_verified': True
+        },
+        'certs': [
+            {
+                'role': 'leaf',
+                'subject_cn': 'www.amazon.com',
+                'subject_dns_names': ['*.amazon.com', 'amazon.com'],
+                'not_before': '2025-10-15T00:00:00',
+                'not_after': '2026-10-31T04:00:00'
+            }
+        ]
     },
-    # DNS Scan Sample (Optimal: A, AAAA, Redundancy, rcode 3 implies A+AAAA)
     'dns_scan': {
-        "rcode": 3,
-        "a":["162.159.153.4","162.159.152.4"],
-        "aaaa":["2606:4700:7::a29f:9804","2606:4700:7::a29f:9904"]
+        'rcode': 0,
+        'host': 'amazon.com',
+        'a': ['98.87.170.71', '98.82.161.185', '98.87.170.74'],
+        'aaaa': ['2600:9000:2549:6400:7:49a5:5fd6:da1'],
+        'cname': []
     },
-    # HVAL Scan Sample (Strong: HTTPS enforced, modern TLS, HSTS+CSP+XCTO=7)
     'hval_scan': {
-        "head":[
-            {"status":301, "url":"http://medium.com"},
-            {"status":200, "url":"https://medium.com/", "tls":"TLS_AES_128_GCM_SHA256"}
+        'item': 'amazon.com',
+        'n': 4,
+        'head': [
+            {
+                'status': 301, 
+                'url': 'http://amazon.com', 
+                'ip': ['98.87.170.71', '98.82.161.185', '98.87.170.74']
+            },
+            {
+                'status': 200, 
+                'url': 'https://www.amazon.com/', 
+                'ip': ['2600:9000:2549:6400:7:49a5:5fd6:da1', '3.171.157.232'],
+                'tls': 'TLS_AES_128_GCM_SHA256'
+            }
         ],
-        "n":2,
-        "security":7
+        'security': 1
     },
-    # Mail Scan Sample (Excellent: p=reject DMARC, multiple MX, but SPF is ~all)
     'mail_scan': {
-        "mx":["aspmx.l.google.com", "alt2.aspmx.l.google.com", "alt1.aspmx.l.google.com", "aspmx2.googlemail.com", "aspmx3.googlemail.com"],
-        "spf":["v=spf1 include:amazonses.com ... ~all"],
-        "dmarc":["v=DMARC1; p=reject; sp=reject; pct=100;fo=1; ri=3600;  rua=mailto:dmarc.rua@medium.com; ruf=mailto:dmarc.rua@medium.com,mailto:ruf@dmarc.medium.com"]
+        'host': 'amazon.com',
+        'mx': ['amazon-smtp.amazon.com'],
+        'spf': ['v=spf1 include:spf1.amazon.com -all'],
+        'dmarc': ['v=DMARC1; p=quarantine; pct=100;']
     },
-    # Method Scan Sample (Optimal: Only HEAD (1) + GET (2) allowed)
     'method_scan': {
-        "flag":3
+        'url': 'amazon.com',
+        'flag': 7
     },
-    # RDAP Scan Sample (Good: 2 servers, but same vendor)
-    'rdap_scan': {
-        "nameserver":["alina.ns.cloudflare.com", "kip.ns.cloudflare.com"]
+    'rdap_scan': [
+        {
+            'host': 'amazon.com',
+            'nameserver': ['ns1.amzndns.co.uk', 'ns1.amzndns.com', 'ns1.amzndns.net'],
+            'domain': {
+                'objectClassName': 'domain',
+                'handle': '281209_DOMAIN_COM-VRSN',
+                'ldhName': 'AMAZON.COM',
+                'status': ['client delete prohibited', 'server update prohibited'],
+                'events': [
+                    {'eventAction': 'registration', 'eventDate': '1994-11-01T05:00:00Z'},
+                    {'eventAction': 'expiration', 'eventDate': '2026-10-31T04:00:00Z'}
+                ],
+                'entities': [
+                    {
+                        'objectClassName': 'entity',
+                        'handle': '292',
+                        'roles': ['registrar'],
+                        'vcardArray': ['vcard', [['fn', {}, 'text', 'MarkMonitor Inc.']]]
+                    }
+                ]
+            }
+        }
+    ],
+    'firewall_scan': {
+        'host': 'amazon.com',
+        'ip': ['98.87.170.71'],
+        'version': 1771430157,
+        'Block': True
     }
 }
 
