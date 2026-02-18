@@ -23,8 +23,19 @@ import { Home, Search, Shield, Settings, MessageCircleQuestionMark } from "lucid
 import { ThemeToggleIcon } from "@/components/ThemeToggleIcon"
 import "@/index.css"
 
+/** @type {"light"|"dark"|"system"} */
+const THEME_MODES = ["light", "dark", "system"]
+
 function Popup() {
-  const [mode, setMode] = useState("light")
+  // Stored preference: "light" | "dark" | "system" (system = follow OS/Chrome default; default on first install)
+  const [themeMode, setThemeMode] = useState("system")
+  // System preference; only used when themeMode === "system"
+  const [systemPrefersDark, setSystemPrefersDark] = useState(
+    () => (typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)").matches : false)
+  )
+  // Effective mode for UI: always "light" or "dark" (derived from themeMode + system when "system")
+  const effectiveMode = themeMode === "system" ? (systemPrefersDark ? "dark" : "light") : themeMode
+
   const [activeTab, setActiveTab] = useState("home")
   const [selectedIndicator, setSelectedIndicator] = useState(null)
   const [isTourActive, setIsTourActive] = useState(false)
@@ -37,9 +48,22 @@ function Popup() {
   const scrollContainerRef = useRef(null)
 
   /**
+   * Sync with system preference when theme is "system".
+   * Listens to prefers-color-scheme so the popup updates if the user changes OS theme.
+   */
+  useEffect(() => {
+    if (themeMode !== "system") return
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+    setSystemPrefersDark(mq.matches)
+    const listener = () => setSystemPrefersDark(mq.matches)
+    mq.addEventListener("change", listener)
+    return () => mq.removeEventListener("change", listener)
+  }, [themeMode])
+
+  /**
    * Load persisted user preferences from chrome.storage.sync.
    *
-   * - themeMode: "light" | "dark"
+   * - themeMode: "light" | "dark" | "system"
    * - textSizeStep: number 0..4
    *
    * Uses an `isMounted` guard to prevent state updates after unmount.
@@ -54,12 +78,12 @@ function Popup() {
     let isMounted = true
 
     chrome.storage.sync.get(
-      { themeMode: "light", textSizeStep: 2 },
-      ({ themeMode, textSizeStep }) => {
+      { themeMode: "system", textSizeStep: 2 },
+      ({ themeMode: storedTheme, textSizeStep }) => {
         if (!isMounted) return
 
-        if (themeMode === "dark" || themeMode === "light") {
-          setMode(themeMode)
+        if (THEME_MODES.includes(storedTheme)) {
+          setThemeMode(storedTheme)
         }
 
         const step = Number(textSizeStep)
@@ -80,7 +104,7 @@ function Popup() {
    * Persist user preferences to chrome.storage.sync.
    *
    * Writes:
-   * - themeMode
+   * - themeMode ("light" | "dark" | "system")
    * - textSizeStep
    *
    * Only runs after initial settings load completes (`isLoaded`).
@@ -89,8 +113,8 @@ function Popup() {
     if (!isLoaded) return
     if (!chrome?.storage?.sync) return
 
-    chrome.storage.sync.set({ themeMode: mode, textSizeStep }, () => {})
-  }, [mode, textSizeStep, isLoaded])
+    chrome.storage.sync.set({ themeMode, textSizeStep }, () => {})
+  }, [themeMode, textSizeStep, isLoaded])
 
   /**
    * Apply the current text size step to the popup document.
@@ -127,7 +151,7 @@ function Popup() {
   }, [textSizeStep])
 
   const toggleMode = () => {
-    setMode((prevMode) => (prevMode === "light" ? "dark" : "light"))
+    setThemeMode(effectiveMode === "dark" ? "light" : "dark")
   }
 
   const handleNavigate = (tab, data) => {
@@ -181,9 +205,9 @@ function Popup() {
   const getTabButtonClasses = (isActive) => {
     const baseClasses = "flex flex-col items-center gap-1 p-2 rounded-xl transition-all"
     if (isActive) {
-      return `${baseClasses} ${mode === "dark" ? "bg-brand-900/50 text-brand-300" : "bg-brand-100 text-brand-700"}`
+      return `${baseClasses} ${effectiveMode === "dark" ? "bg-brand-900/50 text-brand-300" : "bg-brand-100 text-brand-700"}`
     }
-    return `${baseClasses} ${mode === "dark" ? "text-slate-400 hover:text-brand-300 hover:bg-slate-800/50" : "text-slate-600 hover:text-brand-600 hover:bg-brand-50"}`
+    return `${baseClasses} ${effectiveMode === "dark" ? "text-slate-400 hover:text-brand-300 hover:bg-slate-800/50" : "text-slate-600 hover:text-brand-600 hover:bg-brand-50"}`
   }
 
   if (!isLoaded) {
@@ -191,20 +215,20 @@ function Popup() {
   }
 
   return (
-    <div className={mode === "dark" ? "dark" : ""}>
+    <div className={effectiveMode === "dark" ? "dark" : ""}>
       <div
-        className={`h-[500px] flex flex-col ${mode === "dark" ? "bg-gradient-to-b from-slate-900 to-brand-950" : "bg-gradient-to-b from-white to-brand-50"}`}
+        className={`h-[500px] flex flex-col ${effectiveMode === "dark" ? "bg-gradient-to-b from-slate-900 to-brand-950" : "bg-gradient-to-b from-white to-brand-50"}`}
       >
         {/* Header */}
         <div
-          className={`border-b ${mode === "dark" ? "border-brand-900/30 bg-slate-900/50" : "border-brand-200 bg-white/50"} backdrop-blur-sm`}
+          className={`border-b ${effectiveMode === "dark" ? "border-brand-900/30 bg-slate-900/50" : "border-brand-200 bg-white/50"} backdrop-blur-sm`}
         >
           <div className="px-4 py-3 flex items-center justify-between">
             <div>
-              <h1 className={`text-lg font-bold ${mode === "dark" ? "text-white" : "text-slate-900"}`}>
+              <h1 className={`text-lg font-bold ${effectiveMode === "dark" ? "text-white" : "text-slate-900"}`}>
                 NetSTAR
               </h1>
-              <p className={`text-xs ${mode === "dark" ? "text-brand-300" : "text-brand-600"}`}>
+              <p className={`text-xs ${effectiveMode === "dark" ? "text-brand-300" : "text-brand-600"}`}>
                 Security Guide
               </p>
             </div>
@@ -215,8 +239,9 @@ function Popup() {
                 size="icon"
                 onClick={toggleMode}
                 className="rounded-full h-8 w-8"
+                title={effectiveMode === "dark" ? "Switch to light" : "Switch to dark"}
               >
-                <ThemeToggleIcon mode={mode} />
+                <ThemeToggleIcon themeMode={themeMode} effectiveMode={effectiveMode} />
               </Button>
               <Button
                 id="message-circle-question-mark"
@@ -226,7 +251,7 @@ function Popup() {
                 className="rounded-full h-8 w-8"
               >
                 <MessageCircleQuestionMark
-                  className={`h-4 w-4 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`}
+                  className={`h-4 w-4 ${effectiveMode === "dark" ? "text-slate-200" : "text-slate-700"}`}
                 />
               </Button>
               <Button
@@ -236,7 +261,7 @@ function Popup() {
                 onClick={() => setActiveTab("settings")}
                 className="rounded-full h-8 w-8"
               >
-                <Settings className={`h-4 w-4 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`} />
+                <Settings className={`h-4 w-4 ${effectiveMode === "dark" ? "text-slate-200" : "text-slate-700"}`} />
               </Button>
             </div>
           </div>
@@ -246,7 +271,7 @@ function Popup() {
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
           {activeTab === "home" && (
             <HomeTab
-              mode={mode}
+              mode={effectiveMode}
               onNavigate={handleNavigate}
               forceShowIndicators={forceShowIndicators}
               overrideUrl={manualScanContext?.url}
@@ -254,10 +279,10 @@ function Popup() {
             />
           )}
           {activeTab === "details" && (
-            <DetailsTab mode={mode} onBack={handleBack} indicator={selectedIndicator} />
+            <DetailsTab mode={effectiveMode} onBack={handleBack} indicator={selectedIndicator} />
           )}
           {activeTab === "scan" && (
-            <ScanTab mode={mode} onScanComplete={handleScanComplete} />
+            <ScanTab mode={effectiveMode} onScanComplete={handleScanComplete} />
           )}
 
           {/**
@@ -270,7 +295,9 @@ function Popup() {
             */}
           {activeTab === "settings" && (
             <SettingsTab
-              mode={mode}
+              mode={effectiveMode}
+              themeMode={themeMode}
+              onThemeModeChange={setThemeMode}
               onBack={handleBack}
               onStartTour={handleStartTour}
               textSizeStep={textSizeStep}
@@ -282,7 +309,7 @@ function Popup() {
         {/* Bottom Tab Navigation */}
         {activeTab !== "details" && (
           <div
-            className={`border-t ${mode === "dark" ? "border-brand-900/30 bg-slate-900/80" : "border-brand-200 bg-white/80"} backdrop-blur-sm`}
+            className={`border-t ${effectiveMode === "dark" ? "border-brand-900/30 bg-slate-900/80" : "border-brand-200 bg-white/80"} backdrop-blur-sm`}
           >
             <div className="grid grid-cols-2 gap-1 p-2">
               {tabs.map((tab) => {
@@ -317,7 +344,8 @@ function Popup() {
 
         {/* Tour Component */}
         <Tour
-          mode={mode}
+          mode={effectiveMode}
+          themeMode={themeMode}
           isActive={isTourActive}
           onClose={handleCloseTour}
           currentTab={activeTab}

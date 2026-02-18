@@ -13,7 +13,7 @@ const HIGHLIGHT_IDS = {
   // ALERTS_TAB_BUTTON: "alerts-tab-button"
 }
 
-export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepChange }) {
+export function Tour({ mode, themeMode = mode, isActive, onClose, currentTab, onNavigate, onStepChange }) {
   const [currentStep, setCurrentStep] = useState(0)
   const [spotlightPos, setSpotlightPos] = useState(null)
 
@@ -55,22 +55,22 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
     // },
     {
       tab: "home",
-      title: "Theme Toggle",
-      description: "Switch between light and dark mode using this button. Your eyes will thank you!",
+      title: "Theme",
+      description: "Switch between light and dark mode with this button.",
       highlightId: HIGHLIGHT_IDS.THEME_TOGGLE,
       position: "bottom"
     },
     {
       tab: "home",
       title: "Settings",
-      description: "Access settings and preferences by clicking this gear icon. You can always restart this tour from there!",
+      description: "Change theme, text size, and other preferences here. You can always restart this tour from Settings!",
       highlightId: HIGHLIGHT_IDS.SETTINGS_BUTTON,
       position: "bottom"
     },
   ]
 
   const currentStepData = steps[currentStep]
-  const isButtonHighlight = currentStepData?.highlightId === HIGHLIGHT_IDS.THEME_TOGGLE || 
+  const isButtonHighlight = currentStepData?.highlightId === HIGHLIGHT_IDS.THEME_TOGGLE ||
                             currentStepData?.highlightId === HIGHLIGHT_IDS.SETTINGS_BUTTON ||
                             currentStepData?.highlightId === HIGHLIGHT_IDS.SCAN_TAB_BUTTON
                             //|| currentStepData?.highlightId === HIGHLIGHT_IDS.ALERTS_TAB_BUTTON
@@ -221,7 +221,7 @@ export function Tour({ mode, isActive, onClose, currentTab, onNavigate, onStepCh
             }}
           >
             {currentStepData.highlightId === HIGHLIGHT_IDS.THEME_TOGGLE ? (
-              <ThemeToggleIcon mode={mode} />
+              <ThemeToggleIcon themeMode={themeMode} effectiveMode={mode} />
             ) : currentStepData.highlightId === HIGHLIGHT_IDS.SETTINGS_BUTTON ? (
               <Settings className={`h-4 w-4 ${mode === "dark" ? "text-slate-200" : "text-slate-700"}`} />
             ) : currentStepData.highlightId === HIGHLIGHT_IDS.SCAN_TAB_BUTTON ? (
