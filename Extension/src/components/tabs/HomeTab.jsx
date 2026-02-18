@@ -13,7 +13,7 @@ import {
   FileUser,
   NotebookText,
 } from "lucide-react";
-import { getStatusFromScore, getStatusMessage } from "@/lib/securityUtils";
+import { getStatusFromScore, getStatusMessage, getDetailedStatusMessage } from "@/lib/securityUtils";
 import { getColorClasses } from "@/lib/themeUtils";
 import { DEFAULT_INDICATOR_DATA } from "@/lib/constants";
 
@@ -70,7 +70,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
   
   /** Security safety score (0-100), default is 87 */
   const [safetyScore, setSafetyScore] = useState(87);
-  
+
   /** Complete security scan data including indicators and metadata, or null if not loaded */
   const [securityData, setSecurityData] = useState(null);
 
@@ -134,6 +134,7 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
     };
 
     const run = async () => {
+
       // If the popup is showing a manual scan target, prefer that over "current tab".
       if (overrideUrl) {
         setHostnameFromUrl(overrideUrl);
@@ -302,12 +303,9 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
 
   const SafetyScoreStatus = getStatusFromScore(safetyScore);
   const SafetyScoreColor = getColorClasses(SafetyScoreStatus);
-  const SafetyScoreHeaderList = {"excellent": "You\'re Safe Here!",
-    "good": "You Should Be Confident!",
-    "moderate":"You Should Take Some Precaution.",
-    "poor": "You Might Not Be Safe."
-  };
-  const SecurityScoreHeaderPhrase = SafetyScoreHeaderList[String(SafetyScoreStatus).toLowerCase()] ?? "";
+  const SecurityScoreHeaderPhrase = (securityData !== undefined ? (
+    getDetailedStatusMessage(String(SafetyScoreStatus).toLowerCase())) :
+    ( "Loading URL Score"));
 
 
   return (
@@ -326,10 +324,15 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
             mode === "dark" ? "text-slate-200" : "text-brand-900"
           }`}
         >
-          <span className="break-all">
-            {currentUrl}
-          </span>{" "}
-          is looking {SafetyScoreStatus}
+          {securityData !== undefined ? (
+            <>
+              Scanned <span className="break-all">{currentUrl}</span>
+            </>
+          ) : (
+            <>
+              Scanning <span className="break-all">{currentUrl}</span>
+            </>
+          )}
         </p>
       </div>
 
@@ -344,12 +347,27 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
       >
         <div className="text-center">
           <div className="inline-flex items-baseline gap-2 mb-2">
-            <span 
-              key={`score-${safetyScore}`}
-              className={`text-6xl font-bold bg-gradient-to-r ${SafetyScoreColor.gradient} bg-clip-text text-transparent`}
-            >
-              {safetyScore}
-            </span>
+            <div className="inline-flex items-baseline gap-2 mb-2">
+              {securityData == undefined ? (
+                <span
+                  className={`inline-flex items-center justify-center w-[4.25rem] h-[4.25rem] ${
+                    mode === "dark" ? "text-slate-100" : "text-brand-600"
+                  }`}
+                  aria-label="Loading safety score"
+                  role="status"
+                >
+                  <span className="w-10 h-10 border-4 border-current border-t-transparent rounded-full animate-spin" />
+                </span>
+              ) : (
+                <span
+                  key={`score-${safetyScore}`}
+                  className={`text-6xl font-bold bg-gradient-to-r ${SafetyScoreColor.gradient} bg-clip-text text-transparent`}
+                >
+                  {safetyScore}
+                </span>
+              )}
+            </div>
+
             <span
               className={`text-2xl font-medium ${
                 mode === "dark" ? "text-slate-100" : "text-brand-600"
