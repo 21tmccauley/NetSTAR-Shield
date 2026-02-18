@@ -9,6 +9,9 @@ import { maybeShowInPageAlert, maybeShowRiskNotification } from "./notifications
 export function registerTabListeners() {
   chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (changeInfo.status === "complete" && tab.url) {
+      // Auto-scan only for http(s) URLs. Other schemes (file:, chrome:,
+      // chrome-extension:, about:, etc.) are silently skipped — no scan
+      // request is sent. See Docs/url-sanitization-policy.md.
       if (!/^https?:\/\//i.test(tab.url)) return;
 
       const result = await getCachedOrScan(tab.url);
@@ -27,6 +30,7 @@ export function registerTabListeners() {
   chrome.tabs.onActivated.addListener(async (activeInfo) => {
     const tab = await chrome.tabs.get(activeInfo.tabId);
     if (tab.url) {
+      // Skip non-http(s) schemes (same policy as onUpdated above).
       if (!/^https?:\/\//i.test(tab.url)) return;
       const result = await getCachedOrScan(tab.url);
       updateIcon(activeInfo.tabId, result.safetyScore);
