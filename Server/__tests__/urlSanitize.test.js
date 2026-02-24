@@ -166,4 +166,49 @@ describe("normalizeScanTarget", () => {
       expect(result.reason).toMatch(/top-level domain/i);
     });
   });
+
+  // ── Security: dangerous schemes and injection ───────────────────────
+  // Verifies that scheme-based injection, host confusion, and payloads
+  // in path/fragment do not result in accepting a malicious target.
+
+  describe("security — dangerous schemes and content injection", () => {
+    it("rejects javascript: scheme (script injection)", () => {
+      const result = normalizeScanTarget("javascript:alert(1)");
+      expect(result.ok).toBe(false);
+      expect(result.reason).toMatch(/top-level domain|empty|malformed/i);
+    });
+
+    it("rejects data: scheme (data URL / inline content)", () => {
+      const result = normalizeScanTarget(
+        "data:text/html,<script>alert(1)</script>"
+      );
+      expect(result.ok).toBe(false);
+      expect(result.reason).toMatch(/top-level domain|empty|malformed/i);
+    });
+
+    it("rejects vbscript: scheme", () => {
+      const result = normalizeScanTarget("vbscript:msgbox(1)");
+      expect(result.ok).toBe(false);
+      expect(result.reason).toMatch(/top-level domain|empty|malformed/i);
+    });
+
+    it("uses authority host not userinfo (evil.com@good.com → good.com)", () => {
+      // URL parsing: part before @ is userinfo, so hostname is good.com.
+      // Ensures we scan the real host, not attacker-controlled userinfo.
+      const result = normalizeScanTarget("https://evil.com@good.com");
+      expect(result).toEqual({ ok: true, domain: "good.com" });
+    });
+
+    it("ignores fragment so #@evil.com does not override host", () => {
+      const result = normalizeScanTarget("https://good.com#@evil.com");
+      expect(result).toEqual({ ok: true, domain: "good.com" });
+    });
+
+    it("extracts only hostname — path with script payload is discarded", () => {
+      const result = normalizeScanTarget(
+        "https://example.com/<script>alert(1)</script>"
+      );
+      expect(result).toEqual({ ok: true, domain: "example.com" });
+    });
+  });
 });
