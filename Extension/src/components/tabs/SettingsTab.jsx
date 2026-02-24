@@ -284,6 +284,8 @@ async function showTestNotification() {
 
 export function SettingsTab({
   mode,
+  themeMode = "system",
+  onThemeModeChange,
   onBack,
   onStartTour,
   textSizeStep,
@@ -438,6 +440,30 @@ export function SettingsTab({
           >
             Configure general settings for NetSTAR
           </p>
+          {/* Theme */}
+          <div className="flex items-center gap-4 mb-4">
+            <div
+              className={`text-sm font-medium ${
+                mode === "dark" ? "text-white" : "text-slate-900"
+              } min-w-[88px]`}
+            >
+              Theme
+            </div>
+            <select
+              value={themeMode}
+              onChange={(e) => onThemeModeChange?.(e.target.value)}
+              className={`text-sm rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500 ${
+                mode === "dark"
+                  ? "border-slate-600 bg-slate-800 text-white"
+                  : "border-slate-300 bg-white text-slate-900"
+              }`}
+              aria-label="Theme"
+            >
+              <option value="system">System (match OS)</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
           <TextSizeRow
             mode={mode}
             value={textSizeStep ?? 2}
