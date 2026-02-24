@@ -16,7 +16,8 @@ import json
 import subprocess
 
 # Import the module to test
-import score_engine
+import scoring_logic as score_engine
+import data_fetch
 
 
 # ============================================================================
@@ -132,23 +133,36 @@ def dangerous_method_data():
 
 @pytest.fixture
 def optimal_rdap_data():
-    """Optimal RDAP - multiple nameservers, diverse vendors"""
-    return {
+    """Optimal RDAP - multiple nameservers, diverse vendors (List format)"""
+    return [{
         "nameserver": [
             "ns1.google.com",
             "ns2.google.com",
             "ns1.cloudflare.com",
             "ns2.cloudflare.com"
-        ]
-    }
+        ],
+        "host": "example.com",
+        "domain": {
+            "status": ["client delete prohibited", "client transfer prohibited", "client update prohibited",
+                       "server delete prohibited", "server transfer prohibited", "server update prohibited"],
+            "events": [{"eventAction": "registration", "eventDate": "2020-01-01T00:00:00Z"}],
+            "entities": [{"vcardArray": ["vcard", [["fn", {}, "text", "Google LLC"], ["org", {}, "text", "Google LLC"]]]}]
+        }
+    }]
 
 
 @pytest.fixture
 def poor_rdap_data():
-    """Poor RDAP - single nameserver"""
-    return {
-        "nameserver": ["ns1.example.com"]
-    }
+    """Poor RDAP - single nameserver, new domain, no locks (List format)"""
+    return [{
+        "nameserver": ["ns1.example.com"],
+        "host": "newly-registered.xyz",
+        "domain": {
+            "status": ["add period"],
+            "events": [{"eventAction": "registration", "eventDate": "2025-10-10T00:00:00Z"}],
+            "entities": [{"vcardArray": ["vcard", [["fn", {}, "text", "Unknown"]]]}]
+        }
+    }]
 
 
 @pytest.fixture
@@ -579,7 +593,7 @@ class TestFinalScoreCalculation:
     
     def test_all_perfect_scores(self):
         """Test all perfect scores (100) results in 100"""
-        weights = score_engine.WEIGHTS
+        weights = score_engine.app_config.WEIGHTS
         scores = {
             'Connection_Security': 100,
             'Certificate_Health': 100,
@@ -593,7 +607,7 @@ class TestFinalScoreCalculation:
     
     def test_mixed_scores(self):
         """Test mixed scores uses weighted harmonic mean correctly"""
-        weights = score_engine.WEIGHTS
+        weights = score_engine.app_config.WEIGHTS
         scores = {
             'Connection_Security': 90,
             'Certificate_Health': 85,
@@ -607,7 +621,7 @@ class TestFinalScoreCalculation:
     
     def test_zero_score_returns_one(self):
         """Test zero score in any component returns 1"""
-        weights = score_engine.WEIGHTS
+        weights = score_engine.app_config.WEIGHTS
         scores = {
             'Connection_Security': 100,
             'Certificate_Health': 0,  # Zero score
@@ -620,7 +634,7 @@ class TestFinalScoreCalculation:
     
     def test_partial_scores(self):
         """Test calculation with only some components"""
-        weights = score_engine.WEIGHTS
+        weights = score_engine.app_config.WEIGHTS
         scores = {
             'Connection_Security': 90,
             'Certificate_Health': 85
@@ -632,7 +646,7 @@ class TestFinalScoreCalculation:
     
     def test_empty_scores(self):
         """Test empty scores dict returns 0"""
-        weights = score_engine.WEIGHTS
+        weights = score_engine.app_config.WEIGHTS
         scores = {}
         final = score_engine.calculate_final_score(weights, scores)
         assert final == 0.0, "Empty scores should return 0"
@@ -665,6 +679,47 @@ class TestCredentialSafetyScoring:
         hval_data = {"security": 0}  # HSTS missing
         score_engine.score_cred_safety(cert_data, hval_data, base_scores)
         assert base_scores['Credential_Safety'] <= 80, "Missing HSTS should get -20 deduction"
+
+
+# ============================================================================
+# WHOIS PATTERN SCORING TESTS
+# ============================================================================
+
+class TestWhoisScoring:
+    """Tests for score_whois_pattern() function"""
+    
+    def test_perfect_whois_pattern(self, optimal_rdap_data, scan_date, base_scores):
+        """Test perfect WHOIS record (old domain, all locks, clear registrar)"""
+        score_engine.score_whois_pattern(optimal_rdap_data, scan_date, base_scores)
+        assert base_scores['WHOIS_Pattern'] == 100
+        
+    def test_newly_registered_domain(self, poor_rdap_data, scan_date, base_scores):
+        """Test newly registered domain gets major deductions"""
+        score_engine.score_whois_pattern(poor_rdap_data, scan_date, base_scores)
+        # Should have deductions for: add period (-30), age < 30 days (-30), missing locks (-30)
+        assert base_scores['WHOIS_Pattern'] <= 40
+        
+    def test_missing_registration_date(self, scan_date, base_scores):
+        """Test missing registration date gets deduction"""
+        rdap_data = [{
+            "nameserver": ["ns1.example.com"],
+            "domain": {"status": [], "events": [], "entities": []}
+        }]
+        score_engine.score_whois_pattern(rdap_data, scan_date, base_scores)
+        assert base_scores['WHOIS_Pattern'] <= 60 # Missing date (-10) + missing locks (6 * -5 = -30)
+        
+    def test_malformed_registration_date(self, scan_date, base_scores):
+        """Test malformed registration date gets deduction"""
+        rdap_data = [{
+            "nameserver": ["ns1.example.com"],
+            "domain": {
+                "status": [],
+                "events": [{"eventAction": "registration", "eventDate": "not-a-date"}],
+                "entities": []
+            }
+        }]
+        score_engine.score_whois_pattern(rdap_data, scan_date, base_scores)
+        assert base_scores['WHOIS_Pattern'] <= 65 # Malformed date (-5) + missing locks (-30)
 
 
 # ============================================================================
@@ -758,7 +813,7 @@ class TestSecurityScoreCalculation:
 class TestCurlExecution:
     """Tests for execute_curl_command() function"""
     
-    @patch('subprocess.run')
+    @patch('data_fetch.subprocess.run')
     def test_successful_curl_execution(self, mock_run):
         """Test successful curl command execution"""
         mock_run.return_value = Mock(
@@ -767,12 +822,12 @@ class TestCurlExecution:
             stderr=''
         )
         
-        result = score_engine.execute_curl_command(['curl', '-s', 'https://example.com'])
+        result = data_fetch.execute_curl_command(['curl', '-s', 'https://example.com'])
         
         assert result == '{"test": "data"}'
         mock_run.assert_called_once()
     
-    @patch('subprocess.run')
+    @patch('data_fetch.subprocess.run')
     def test_failed_curl_execution(self, mock_run):
         """Test failed curl command execution"""
         mock_run.return_value = Mock(
@@ -781,25 +836,25 @@ class TestCurlExecution:
             stderr='Connection failed'
         )
         
-        result = score_engine.execute_curl_command(['curl', '-s', 'https://example.com'])
+        result = data_fetch.execute_curl_command(['curl', '-s', 'https://example.com'])
         
         assert result is None
     
-    @patch('subprocess.run')
+    @patch('data_fetch.subprocess.run')
     def test_curl_timeout(self, mock_run):
         """Test curl command timeout"""
         mock_run.side_effect = subprocess.TimeoutExpired('curl', 15)
         
-        result = score_engine.execute_curl_command(['curl', '-s', 'https://example.com'])
+        result = data_fetch.execute_curl_command(['curl', '-s', 'https://example.com'])
         
         assert result is None
     
-    @patch('subprocess.run')
+    @patch('data_fetch.subprocess.run')
     def test_curl_not_found(self, mock_run):
         """Test curl command not found"""
         mock_run.side_effect = FileNotFoundError()
         
-        result = score_engine.execute_curl_command(['curl', '-s', 'https://example.com'])
+        result = data_fetch.execute_curl_command(['curl', '-s', 'https://example.com'])
         
         assert result is None
 

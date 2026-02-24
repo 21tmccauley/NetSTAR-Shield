@@ -102,10 +102,14 @@ def score_cert_health(data: dict, scan_date: datetime, scores: dict): #TODO: Cha
         if app_config.VERBOSE:
             print("Cert Score: Significant Deduction - Certificate chain not verified. (CERT_HEALTH)", file=sys.stderr)
 
-def score_dns_rec_health(dns_data: dict, rdap_scan:dict, scores: dict): 
+def score_dns_rec_health(dns_data: dict, rdap_data: dict, scores: dict): 
     """Calculates the score for the DNS Scan (Max Score: 100).
     Focuses on record coverage (rcode) and redundancy (A/AAAA counts).
     """
+    # Normalize RDAP data if it's a list (from live API)
+    if isinstance(rdap_data, list) and len(rdap_data) > 0:
+        rdap_data = rdap_data[0]
+    
     rcode = dns_data.get("rcode", 0)
     a_count = len(dns_data.get("a", []))
     aaaa_count = len(dns_data.get("aaaa", []))
@@ -234,8 +238,12 @@ def score_conn_sec(hval_data: dict, cert_data: dict, scores: dict):
         if app_config.VERBOSE:
             print(f"HVAL Score: Significant Deduction - Outdated TLS version: {tls_version}. (CONN_SEC)", file=sys.stderr)
 
-def score_dom_rep(mail_data: dict, method_data: dict, rdap_data: dict, scores: dict): #NEW FUNCTION
+def score_dom_rep(mail_data: dict, method_data: dict, rdap_data: dict, scores: dict):
     """Unifies Domain Reputation scoring from Mail, Method, and RDAP scans."""
+    # Normalize RDAP data if it's a list (from live API)
+    if isinstance(rdap_data, list) and len(rdap_data) > 0:
+        rdap_data = rdap_data[0]
+
 #ADD: tld scoring (list of top 20 suspicious, add points for gov/edu?)
 # --- Mail Scan ---
     # 1. MX Redundancy 
@@ -320,7 +328,7 @@ def score_dom_rep(mail_data: dict, method_data: dict, rdap_data: dict, scores: d
             print("Method Score: Acceptable - HEAD, GET, and POST methods enabled. (DOM_REP)", file=sys.stderr)
 
     # --- RDAP Scan ---
-    nameservers = rdap_data[0].get("nameserver", [])
+    nameservers = rdap_data.get("nameserver", [])
 
     # 1. Redundancy (Major Deduction)
     if len(nameservers) < 2:
@@ -351,7 +359,7 @@ def score_dom_rep(mail_data: dict, method_data: dict, rdap_data: dict, scores: d
         pass # Good diversity, no deduction
 
     #functionality to check tlds against malicious list
-    target_tld = rdap_data[0].get("host", "").split('.')[-1]
+    target_tld = rdap_data.get("host", "").split('.')[-1]
     print(f"Target TLD: {target_tld}", file=sys.stderr)
     if target_tld in app_config.MAL_TLDS_SLIM:
         scores['Domain_Reputation'] -= 10
@@ -360,8 +368,8 @@ def score_dom_rep(mail_data: dict, method_data: dict, rdap_data: dict, scores: d
     else:
         pass # No deduction for TLD reputation
 
-def score_cred_safety(cert_data:dict, hval_data:dict, scores:dict): #TODO: IMPLEMENT
-    """Initial function for Credential Safety scoring function.
+def score_cred_safety(cert_data:dict, hval_data:dict, scores:dict):
+    """Calculates the Credential Safety score (Max Score: 100).
     Currently limited, but can be flushed out further.
     """
     tls_version = cert_data.get('connection', {}).get('tls_version')
@@ -384,13 +392,17 @@ def score_ip_rep(dns_data:dict, hval_data:dict, scores:dict): #PAUSED: Further i
 
     pass
 
-def score_whois_pattern(rdap_data:dict, scan_date: datetime, scores:dict): #TODO: IMPLEMENT
-    """Placeholder for WHOIS Pattern scoring function.
-    Currently unused, but can be implemented in the future.
+def score_whois_pattern(rdap_data:dict, scan_date: datetime, scores:dict):
+    """Calculates the WHOIS Pattern score (Max Score: 100).
+    Analyzes domain age, registration status, and registrar details.
     """
-    domain_data = rdap_data[0].get('domain', {})
-    host = rdap_data[0].get("host","")  
-    nameservers = rdap_data[0].get("nameserver", [])
+    # Normalize RDAP data if it's a list (from live API)
+    if isinstance(rdap_data, list) and len(rdap_data) > 0:
+        rdap_data = rdap_data[0]
+
+    domain_data = rdap_data.get('domain', {})
+    host = rdap_data.get("host","")  
+    nameservers = rdap_data.get("nameserver", [])
     events = domain_data.get('events', [])
     status = domain_data.get('status', []) #place to check for "client delete prohibited",
     #        "client transfer prohibited",
@@ -467,7 +479,10 @@ def score_whois_pattern(rdap_data:dict, scan_date: datetime, scores:dict): #TODO
         scores['WHOIS_Pattern'] -= 10
 
     # 1. Access the vcard list safely
-    vcard_entries = domain_data.get('entities', [{}])[0].get('vcardArray', [None, []])[1]
+    entities = domain_data.get('entities', [])
+    vcard_entries = []
+    if entities and isinstance(entities, list):
+        vcard_entries = entities[0].get('vcardArray', [None, []])[1]
 
     registrar_name = "Unknown"
     extracted_org = "Unknown"
@@ -475,6 +490,8 @@ def score_whois_pattern(rdap_data:dict, scan_date: datetime, scores:dict): #TODO
 
     # 2. Iterate through the jCard entries to find the Formatted Name ('fn')
     for entry in vcard_entries:
+        if not isinstance(entry, list) or len(entry) < 4:
+            continue
         field_type = entry[0]
         field_value = entry[3]
 
@@ -606,4 +623,51 @@ def calculate_security_score(all_scans: dict, scan_date: datetime) -> dict: #CHA
         scores['Aggregated_Score'] = round(average_score, 2)
         
     return scores
+
+from urllib.parse import urlparse
+import requests
+
+def validate_url(url: str, timeout: int = 5) -> dict:
+    """
+    Validates a URL for:
+    - Proper format
+    - Reachability
+    - Expired or dead status codes
+
+    Returns:
+        dict with validation result
+    """
+
+    # 1️⃣ Check format
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            return {"valid": False, "reason": "Malformed URL"}
+    except Exception:
+        return {"valid": False, "reason": "Malformed URL"}
+
+    # 2️⃣ Check network response
+    try:
+        response = requests.head(url, allow_redirects=True, timeout=timeout)
+
+        if response.status_code == 200:
+            return {"valid": True, "status": 200}
+
+        if response.status_code == 404:
+            return {"valid": False, "reason": "Not Found (404)"}
+
+        if response.status_code == 410:
+            return {"valid": False, "reason": "Expired (410 Gone)"}
+
+        return {
+            "valid": False,
+            "reason": f"HTTP {response.status_code}"
+        }
+
+    except requests.exceptions.Timeout:
+        return {"valid": False, "reason": "Request timed out"}
+
+    except requests.exceptions.RequestException:
+        return {"valid": False, "reason": "Network error"}
+
 
