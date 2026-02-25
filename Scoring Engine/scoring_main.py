@@ -178,16 +178,6 @@ if __name__ == '__main__':
     print(json.dumps(output, indent=2))
 
     if app_config.VERBOSE:
-        print("\n--- Individual Scan Scores ---", file=sys.stderr)
-    for key, value in final_scores.items():
-        if key != 'Aggregated_Score':
-            print(f"\"{key:<15}\": \"{value}\"")
-
-    if app_config.VERBOSE:        
-        print("\n-------------------------------------------", file=sys.stderr)
-    
-    print(f"\"aggregatedScore\": \"{final_scores.get('Aggregated_Score')}\"")
-    if app_config.VERBOSE:
         print("-------------------------------------------", file=sys.stderr)
         print(f"Total execution time: {elapsed_time:.2f} seconds", file=sys.stderr)
         print("-------------------------------------------", file=sys.stderr)
