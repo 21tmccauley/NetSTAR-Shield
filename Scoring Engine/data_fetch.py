@@ -8,6 +8,13 @@ import config as app_config
 
 # --- Data Fetching Function (Using 'curl' subprocess) ---
 
+# Map endpoint names to scan keys where the default "{endpoint}_scan" pattern
+# doesn't apply (e.g. hyphenated endpoint names).
+SCAN_KEY_OVERRIDES = {
+    'ip-info': 'ipinfo_scan',
+    'webpage-inspect': 'webpage_inspect_scan',
+}
+
 def execute_curl_command(command: List[str]) -> Optional[str]: #KEEP
     """
     Executes a shell command (cURL) and returns the standard output.
@@ -50,14 +57,14 @@ def execute_curl_command(command: List[str]) -> Optional[str]: #KEEP
 
 def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict | None]:
     """
-    (Formerly fetch_scan_data's loop content) Fetches, parses, and returns 
+    (Formerly fetch_scan_data's loop content) Fetches, parses, and returns
     the data for a single endpoint using cURL subprocess.
     Returns (scan_key, data) on success or (None, None) on failure.
     """
     # 1. Key Generation
     # Map endpoint to the key used in scoring functions (e.g., 'cert' -> 'cert_scan')
-    scan_key = f"{endpoint}_scan" if endpoint != 'title' else None
-    if not scan_key: 
+    scan_key = SCAN_KEY_OVERRIDES.get(endpoint, f"{endpoint}_scan")
+    if endpoint == 'title':
         return (None, None)
 
     # 2. URL Construction
@@ -65,30 +72,30 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
     if endpoint == 'dns':
         query = '?A&AAAA&CNAME&DNS&MX&TXT'
     full_url = f"{BASE_URL}{endpoint}/{host}{query}"
-    
+
 
     # 3. Define the cURL command (with exception for RDAP POST)
     if app_config.VERBOSE:
         print(f"\n[Processing Endpoint: {endpoint.upper()}]", file=sys.stderr)
-    
+
     CURL_COMMAND = [] # Initialize command list
 
     # --- EXCEPTION LOGIC FOR RDAP POST REQUEST ---
     if endpoint == 'rdap':
         # Target: curl -X POST https://w4.netstar.dev/rdap -d '{"host": "espn.com", "full": true}'
-        
+
         # The URL in this specific POST case is just the base endpoint, not {endpoint}/{host}
-        rdap_url = f"{BASE_URL}{endpoint}" 
+        rdap_url = f"{BASE_URL}{endpoint}"
         json_data = f'{{"host": "{host}", "full": true}}'
-        
+
         CURL_COMMAND = [
-            'curl', 
-            '-s', 
-            '-X', 'POST', 
-            rdap_url, 
+            'curl',
+            '-s',
+            '-X', 'POST',
+            rdap_url,
             '-d', json_data
         ]
-        
+
     # --- DEFAULT LOGIC (for all other GET requests) ---
     else:
         # Target: curl -s {full_url}
@@ -97,7 +104,7 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
 
     # 4. Execute the command
     output = execute_curl_command(CURL_COMMAND)
-    
+
     if output is None:
         if app_config.VERBOSE:
             print(f"--> Endpoint {endpoint.upper()} failed execution. Skipping.", file=sys.stderr)
@@ -117,9 +124,9 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
             print(f"--> An error occurred processing {endpoint.upper()}: {e}", file=sys.stderr)
         return (None, None)
 
-def fetch_scan_data_concurrent(host: str) -> dict: 
+def fetch_scan_data_concurrent(host: str) -> dict:
     """
-    Coordinates concurrent fetching of scan data from all API endpoints 
+    Coordinates concurrent fetching of scan data from all API endpoints
     using a ThreadPoolExecutor.
     """
     all_scans = {}
@@ -130,20 +137,20 @@ def fetch_scan_data_concurrent(host: str) -> dict:
     # Use ThreadPoolExecutor to run tasks in parallel
     # The number of workers is set to the number of endpoints to run all simultaneously
     with ThreadPoolExecutor(max_workers=len(API_ENDPOINTS)) as executor:
-        
+
         # 'executor.map' schedules 'process_single_endpoint' for all items in API_ENDPOINTS.
         # It requires that 'host' is repeated for each call.
         future_results = executor.map(
-            process_single_endpoint, 
+            process_single_endpoint,
             [host] * len(API_ENDPOINTS), # host repeated for each worker
             API_ENDPOINTS               # endpoint is iterated over
         )
-        
+
         # Aggregate the results as they complete
         for scan_key, data in future_results:
             if scan_key and data:
                 all_scans[scan_key] = data
-                
+
     if app_config.VERBOSE:
         print("\n--- Data fetching complete ---", file=sys.stderr)
     return all_scans

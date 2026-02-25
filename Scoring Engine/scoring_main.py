@@ -1,7 +1,6 @@
 import json
 import sys
 import argparse
-import json
 import time
 from datetime import datetime
 from typing import Dict
@@ -9,7 +8,7 @@ from typing import Dict
 # 1. Import everything needed from the new files
 import config as app_config
 from data_fetch import fetch_scan_data_concurrent
-from scoring_logic import calculate_security_score
+from scoring_logic import calculate_security_score, check_preflight
 
 # --- Test Data ---
 test_scans = {
@@ -18,7 +17,7 @@ test_scans = {
         'port': 443,
         'timestamp': '2026-02-18T16:06:49Z',
         'connection': {
-            'tls_version': 'TLS 1.3', 
+            'tls_version': 'TLS 1.3',
             'cipher_suite': 'TLS_AES_128_GCM_SHA256'
         },
         'verification': {
@@ -48,13 +47,13 @@ test_scans = {
         'n': 4,
         'head': [
             {
-                'status': 301, 
-                'url': 'http://amazon.com', 
+                'status': 301,
+                'url': 'http://amazon.com',
                 'ip': ['98.87.170.71', '98.82.161.185', '98.87.170.74']
             },
             {
-                'status': 200, 
-                'url': 'https://www.amazon.com/', 
+                'status': 200,
+                'url': 'https://www.amazon.com/',
                 'ip': ['2600:9000:2549:6400:7:49a5:5fd6:da1', '3.171.157.232'],
                 'tls': 'TLS_AES_128_GCM_SHA256'
             }
@@ -105,7 +104,7 @@ test_scans = {
 
 # --- Main execution block ---
 if __name__ == '__main__':
-    
+
     # 1. Setup argument parser
     parser = argparse.ArgumentParser(
         description="Get a security and infrastructure score for a target domain."
@@ -124,21 +123,37 @@ if __name__ == '__main__':
         '-v', '--verbose',
         action='store_true',
         help="Enable verbose output for clarity."
-    )    
+    )
     parser.add_argument(
         '--use-test-data',
         action='store_true',
         help="Run the script using the internal test_scans data instead of live API calls."
     )
-    
+    parser.add_argument(
+        '--signals',
+        type=str,
+        default=None,
+        help="JSON string of live content signals from extension (live mode)."
+    )
+
     args = parser.parse_args()
     app_config.VERBOSE = args.verbose
-    
+
     all_scans = {}
     scan_date = None
+    live_signals = None
+
+    # Parse live signals if provided
+    if args.signals:
+        try:
+            live_signals = json.loads(args.signals)
+            if app_config.VERBOSE:
+                print(f"--- Received live signals (mode: {live_signals.get('mode', 'unknown')}) ---", file=sys.stderr)
+        except json.JSONDecodeError as e:
+            print(f"Warning: Failed to parse --signals JSON: {e}", file=sys.stderr)
 
     # ----------------------------------------------------
-    # START TIMER 
+    # START TIMER
     start_time = time.time()
     # ----------------------------------------------------
 
@@ -157,17 +172,42 @@ if __name__ == '__main__':
         scan_date = datetime.now()
         # *** CHANGED TO THE CONCURRENT FETCH FUNCTION ***
         all_scans = fetch_scan_data_concurrent(args.target)
-    
+
     # 3. Check if we have data, then calculate and print scores
     if not all_scans:
         if app_config.VERBOSE:
             print("No scan data was retrieved. Exiting.", file=sys.stderr)
         sys.exit(1)
 
-    final_scores = calculate_security_score(all_scans, scan_date)
-    
+    # Phase 1a: Pre-flight check for dead/parked sites
+    # In live mode the user is actively on the page, so dead/parked checks
+    # are irrelevant — skip the pre-flight entirely.
+    is_live_mode = live_signals and live_signals.get('mode') == 'live'
+
+    if not is_live_mode:
+        preflight_result = check_preflight(
+            all_scans.get('dead_scan'),
+            all_scans.get('parked_scan'),
+            all_scans.get('redirect_scan')
+        )
+        if preflight_result:
+            # Short-circuit: site is dead or parked
+            output = {k: v for k, v in preflight_result.items() if k != 'Aggregated_Score'}
+            output['aggregatedScore'] = preflight_result.get('Aggregated_Score', 1)
+            print(json.dumps(output, indent=2))
+
+            if app_config.VERBOSE:
+                reason = preflight_result.get('preflight', 'unknown')
+                print(f"\n--- Site is {reason}. All scores set to 1. ---", file=sys.stderr)
+            sys.exit(0)
+    else:
+        if app_config.VERBOSE:
+            print("--- Live mode: skipping dead/parked pre-flight checks ---", file=sys.stderr)
+
+    final_scores = calculate_security_score(all_scans, scan_date, live_signals)
+
     # ----------------------------------------------------
-    # END TIMER AND CALCULATE 
+    # END TIMER AND CALCULATE
     end_time = time.time()
     elapsed_time = end_time - start_time
     # ----------------------------------------------------
@@ -183,12 +223,11 @@ if __name__ == '__main__':
         if key != 'Aggregated_Score':
             print(f"\"{key:<15}\": \"{value}\"")
 
-    if app_config.VERBOSE:        
+    if app_config.VERBOSE:
         print("\n-------------------------------------------", file=sys.stderr)
-    
+
     print(f"\"aggregatedScore\": \"{final_scores.get('Aggregated_Score')}\"")
     if app_config.VERBOSE:
         print("-------------------------------------------", file=sys.stderr)
         print(f"Total execution time: {elapsed_time:.2f} seconds", file=sys.stderr)
         print("-------------------------------------------", file=sys.stderr)
-

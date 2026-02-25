@@ -16,31 +16,40 @@ SECURITY_FLAGS = {
     'COEP': 64
 }
 
-# Weights for each component in the final score calculation
+# Weights for each component in the final score calculation.
+# When Content_Safety is present, the orchestrator dynamically adds it.
+# Base weights (without Content_Safety) sum to 100.
 WEIGHTS = {
-    'Connection_Security': 18,
-    'Certificate_Health': 15,
-    'DNS_Record_Health': 14,
-    'Domain_Reputation': 24,    
-    'WHOIS_Pattern': 10, #unused currently
-    'IP_Reputation': 2, #unused currently (probably won't be used)
-    'Credential_Safety': 17
+    'Connection_Security': 14,
+    'Certificate_Health': 12,
+    'DNS_Record_Health': 10,
+    'Domain_Reputation': 20,
+    'WHOIS_Pattern': 6,
+    'IP_Reputation': 8,
+    'Credential_Safety': 12,
+    'Content_Safety': 18
 }
 
 
 BASE_URL = 'https://w4.netstar.dev/'
 API_ENDPOINTS = [
-    'cert', 
-    'dns', 
-    'hval', 
-    'mail', 
-    'method', 
+    'cert',
+    'dns',
+    'hval',
+    'mail',
+    'method',
     'rdap',
-    'firewall'
+    'firewall',
+    'dead',
+    'parked',
+    'ip-info',
+    'crtsh',
+    'redirect',
+    'webpage-inspect'
 ]
 
 # Default target hostname used if no argument is provided
-DEFAULT_URL = 'netstar.ai' 
+DEFAULT_URL = 'netstar.ai'
 
 # Verbose mode flag
 VERBOSE = False
@@ -69,4 +78,28 @@ MAL_TLDS_SLIM = [ #removed co, com, eu, uk, org, net
     "ru", "sbs", "sh", "shop", "site", "so", "st", "store", "su",
     "support","tel", "to", "today", "top", "tr", "tv", "ua",
     "us", "vip", "wiki", "world", "ws", "xn--q9jyb4c", "xyz"
+]
+
+# Countries with high rates of hosting malicious infrastructure
+HIGH_RISK_COUNTRIES = [
+    "RU", "CN", "KP", "IR", "NG", "RO", "UA", "BY", "VN", "PK"
+]
+
+# ASNs associated with bulletproof hosting providers
+BULLETPROOF_ASNS = [
+    "AS49981",  # WorldStream
+    "AS44477",  # Stark Industries
+    "AS206898", # Serverius
+    "AS48693",  # Rices Privately owned enterprise
+    "AS9009",   # M247
+    "AS16276",  # OVH (partial, high abuse)
+    "AS14061",  # DigitalOcean (partial, high abuse)
+]
+
+# Well-known certificate authorities (for CT log checking)
+COMMON_CAS = [
+    "Let's Encrypt", "DigiCert", "Sectigo", "GlobalSign", "Comodo",
+    "GoDaddy", "Amazon", "Google Trust Services", "Entrust",
+    "Certum", "SSL.com", "ZeroSSL", "Buypass", "IdenTrust",
+    "Starfield", "QuoVadis", "SwissSign", "HARICA",
 ]
