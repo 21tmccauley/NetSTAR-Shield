@@ -420,7 +420,7 @@ def score_cred_safety(cert_data:dict, hval_data:dict, scores:dict): #TODO: IMPLE
             if app_config.VERBOSE:
                 print(f"Cred Safety Score: Minor Deduction - Weak signature algorithm: {sig_algorithm}. (CRED_SAFETY)", file=sys.stderr)
 
-def score_ip_rep(dns_data:dict, hval_data:dict, scores:dict): #PAUSED: Further investigation needed to determine if helpful
+def score_ip_rep(firewall_data:dict, scores:dict): #PAUSED: Further investigation needed to determine if helpful
     """Placeholder for IP Reputation scoring function.
     Currently unused, but can be implemented in the future.
     """
@@ -645,7 +645,7 @@ def calculate_security_score(all_scans: dict, scan_date: datetime) -> dict: #CHA
         print(f"Error in whois_pattern scan: {e}", file=sys.stderr)
 
     try:
-        score_ip_rep(all_scans['firewall_scan'], scores)
+        score_ip_rep(all_scans.get('firewall_scan', {}), scores)
     except Exception as e:
         print(f"Error in ip_rep scan: {e}", file=sys.stderr)
 
