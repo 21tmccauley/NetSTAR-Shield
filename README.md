@@ -2,10 +2,6 @@
 
 **Real-time website security insights in your browser.**
 
-This folder contains the full NetSTAR Shield stack: Chrome extension, Node server, and Python scoring engine.
-
-📖 **Full documentation:** [README at repository root](../README.md)
-
 ---
 
 ## What’s in this folder
