@@ -4,6 +4,15 @@ All notable changes to the NetSTAR-Shield project are documented in this file.
 
 ---
 
+## Phase 6b — Expanded Webpage Inspect Payload Signals
+
+- **Go Worker** (`webpage_inspect.go`): Added `InspectSignals` fields: `crypto_mining`, `clipboard_hijack`, `fingerprint_score`, `keylogger_detected`, `external_scripts`, `external_script_domains`, `suspicious_anchors`, `meta_refresh`, `meta_refresh_url`, `favicon_external`.
+- **Go Worker** (`routes.go`): Added regex patterns for crypto miners (`CoinHive`, `cryptonight`, etc.), clipboard hijacking (`execCommand copy`, `navigator.clipboard.write`), browser fingerprinting (`canvas.toDataURL`, `navigator.plugins`, `AudioContext`, `WebGLRenderingContext`, `navigator.hardwareConcurrency`), and keyloggers (`addEventListener keydown/press/up`). Extended `analyzeScriptContent()` with all new detections including weighted fingerprint scoring.
+- **Go Worker** (`routes.go`): Extended HTML tokenizer — `atom.Script` now tracks external script domains; `atom.Meta` detects `http-equiv="refresh"` with external URL extraction; `atom.Link` detects favicon domain mismatches; `atom.A` now buffers display text and compares domain-like text against href for suspicious anchor detection.
+- **Scoring Engine** (`scoring_logic.py`): Extended `score_content_safety()` with deductions for crypto mining (-30), clipboard hijacking (-15), fingerprinting >40 (-15), keylogger (-25), excessive external scripts (-5/-15), suspicious anchors (-20), meta refresh to external domain (-15), external favicon (-5).
+
+---
+
 ## Phase 6 — Rename, Dual-Mode Logic, Fake-Parked Detection
 
 ### Change 1: Rename `inspect` to `webpage_inspect`

@@ -832,6 +832,60 @@ def score_content_safety(signals: dict, scores: dict):
         if app_config.VERBOSE:
             print(f"Content Safety: Deduction - {signals['data_uri_links']} data URI links detected. (CONTENT_SAFETY)", file=sys.stderr)
 
+    # Phase 6b: expanded signals
+    # Crypto mining
+    if signals.get('crypto_mining', False):
+        scores['Content_Safety'] -= 30
+        if app_config.VERBOSE:
+            print("Content Safety: Deduction - Crypto mining scripts detected. (CONTENT_SAFETY)", file=sys.stderr)
+
+    # Clipboard hijacking
+    if signals.get('clipboard_hijack', False):
+        scores['Content_Safety'] -= 15
+        if app_config.VERBOSE:
+            print("Content Safety: Deduction - Clipboard hijacking detected. (CONTENT_SAFETY)", file=sys.stderr)
+
+    # Fingerprinting
+    if signals.get('fingerprint_score', 0) > 40:
+        scores['Content_Safety'] -= 15
+        if app_config.VERBOSE:
+            print(f"Content Safety: Deduction - Fingerprint score {signals['fingerprint_score']} (suspicious). (CONTENT_SAFETY)", file=sys.stderr)
+
+    # Keylogger
+    if signals.get('keylogger_detected', False):
+        scores['Content_Safety'] -= 25
+        if app_config.VERBOSE:
+            print("Content Safety: Deduction - Keylogger behavior detected. (CONTENT_SAFETY)", file=sys.stderr)
+
+    # External script abuse
+    ext_scripts = signals.get('external_scripts', 0)
+    if ext_scripts > 10:
+        scores['Content_Safety'] -= 15
+        if app_config.VERBOSE:
+            print(f"Content Safety: Deduction - {ext_scripts} external scripts (excessive). (CONTENT_SAFETY)", file=sys.stderr)
+    elif ext_scripts > 5:
+        scores['Content_Safety'] -= 5
+        if app_config.VERBOSE:
+            print(f"Content Safety: Deduction - {ext_scripts} external scripts (elevated). (CONTENT_SAFETY)", file=sys.stderr)
+
+    # Suspicious anchors (display text mimics URL but href differs)
+    if signals.get('suspicious_anchors', 0) > 0:
+        scores['Content_Safety'] -= 20
+        if app_config.VERBOSE:
+            print(f"Content Safety: Deduction - {signals['suspicious_anchors']} suspicious anchors detected. (CONTENT_SAFETY)", file=sys.stderr)
+
+    # Meta refresh to external domain
+    if signals.get('meta_refresh', False) and signals.get('meta_refresh_url', ''):
+        scores['Content_Safety'] -= 15
+        if app_config.VERBOSE:
+            print(f"Content Safety: Deduction - Meta refresh to external URL: {signals['meta_refresh_url']}. (CONTENT_SAFETY)", file=sys.stderr)
+
+    # Favicon from different domain
+    if signals.get('favicon_external', False):
+        scores['Content_Safety'] -= 5
+        if app_config.VERBOSE:
+            print("Content Safety: Deduction - Favicon served from external domain. (CONTENT_SAFETY)", file=sys.stderr)
+
 
 def calculate_final_score(weights, scores): #CHANGE
     """
