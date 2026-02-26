@@ -2,6 +2,8 @@
 
 Express API that serves the `/scan` endpoint for the NetSTAR Shield browser extension. It normalizes and validates scan targets, then invokes the Python scoring engine to produce security scores.
 
+> **Shared policy:** The normalization and validation rules below follow the project-wide [URL Sanitization & Normalization Policy](../Docs/url-sanitization-policy.md), which is the single source of truth for how scan targets are handled across the Extension, Server, and Scoring Engine.
+
 ---
 
 ## URL Sanitization & Normalization

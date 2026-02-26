@@ -44,10 +44,13 @@ This folder contains the full NetSTAR Shield stack: Chrome extension, Node serve
 
 ---
 
-## More detail
+## Documentation
+
+For a full documentation index, see the [root README](../README.md#documentation) or [Docs/README.md](Docs/README.md).
 
 - [Root README](../README.md) — features, architecture, full quick start, project structure, development, config.
-- [Extension README](Extension/README.md) — extension features and dev workflow.
+- [Docs/](Docs/) — architecture, policies, testing guide, deployment guide.
+- [Extension README](Extension/README.md) — extension features and dev workflow. See also [Extension/docs/](Extension/docs/).
 - [Server readme](Server/readme.md) — URL sanitization and tests.
 - [Scoring Engine readme](Scoring%20Engine/readme.md) — scoring engine usage and status.
-- [Docs/extension-server-flow.md](Docs/extension-server-flow.md) — how extension, server, and scoring engine work together.
+- [Tests-Summary.md](Tests-Summary.md) — stakeholder-facing test coverage summary.

@@ -24,6 +24,8 @@ run `python scoring_main.py -t [TARGET URL]` to test against target URL
 
 run `python scoring_main.py -v` to get additional information on the execution of curl commands, reasons for score deductions, and runtime information
 
+For running the test suite, see [TESTING.md](TESTING.md).
+
 ## Fine-tune February  
 Listed below are all of the things that need attention:  
 * scoring_main.py
