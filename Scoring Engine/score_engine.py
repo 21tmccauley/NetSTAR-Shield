@@ -476,7 +476,7 @@ def score_cred_safety(cert_data:dict, hval_data:dict, scores:dict): #TODO: IMPLE
         scores['Credential_Safety'] -= 20
         print("Cred Safety Score: Significant Deduction - HSTS header missing. (CRED_SAFETY)")
 
-def score_ip_rep(dns_data:dict, hval_data:dict, scores:dict): #PAUSED: Further investigation needed to determine if helpful
+def score_ip_rep(firewall_data:dict, scores:dict): #PAUSED: Further investigation needed to determine if helpful
     """Placeholder for IP Reputation scoring function.
     Currently unused, but can be implemented in the future.
     """
