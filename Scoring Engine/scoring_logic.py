@@ -420,13 +420,13 @@ def score_cred_safety(cert_data:dict, hval_data:dict, scores:dict): #TODO: IMPLE
             if app_config.VERBOSE:
                 print(f"Cred Safety Score: Minor Deduction - Weak signature algorithm: {sig_algorithm}. (CRED_SAFETY)", file=sys.stderr)
 
-def score_ip_rep(dns_data:dict, hval_data:dict, scores:dict): #PAUSED: Further investigation needed to determine if helpful
+def score_ip_rep(firewall_data:dict, scores:dict): #PAUSED: Further investigation needed to determine if helpful
     """Placeholder for IP Reputation scoring function.
     Currently unused, but can be implemented in the future.
     """
     blocked = firewall_data.get("Block", False)
     if blocked:
-        scores['IP_Reputation'] -= 100
+        scores['IP_Reputation'] -= 99
         if app_config.VERBOSE:
             print("IP Reputation Score: CRITICAL - IP is listed on a firewall blocklist. (IP_REP)", file=sys.stderr)
     else:
