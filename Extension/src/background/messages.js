@@ -63,127 +63,74 @@ export function registerMessageListeners() {
       return true;
     }
 
-    if (request.action === "getCurrentTab") {
-      if (request.requestId) {
-        (async () => {
-          try {
-            const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            let targetTab = activeTabs[0];
+    // getCurrentTab: caller must send requestId; response is sent via getCurrentTabResponse (MV3-safe).
+    if (request.action === "getCurrentTab" && request.requestId) {
+      (async () => {
+        try {
+          const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          let targetTab = activeTabs[0];
 
-            if (
-              !targetTab ||
-              !targetTab.url ||
-              !/^https?:\/\//i.test(targetTab.url) ||
-              targetTab.url.startsWith("chrome-extension://") ||
-              targetTab.url.startsWith("chrome://") ||
-              targetTab.url.startsWith("edge://") ||
-              targetTab.url.startsWith("about:")
-            ) {
-              const allTabs = await chrome.tabs.query({ currentWindow: true });
-              for (const t of allTabs) {
-                if (
-                  t.url &&
-                  /^https?:\/\//i.test(t.url) &&
-                  !t.url.startsWith("chrome-extension://") &&
-                  !t.url.startsWith("chrome://") &&
-                  !t.url.startsWith("edge://") &&
-                  !t.url.startsWith("about:")
-                ) {
-                  targetTab = t;
-                  break;
-                }
+          if (
+            !targetTab ||
+            !targetTab.url ||
+            !/^https?:\/\//i.test(targetTab.url) ||
+            targetTab.url.startsWith("chrome-extension://") ||
+            targetTab.url.startsWith("chrome://") ||
+            targetTab.url.startsWith("edge://") ||
+            targetTab.url.startsWith("about:")
+          ) {
+            const allTabs = await chrome.tabs.query({ currentWindow: true });
+            for (const t of allTabs) {
+              if (
+                t.url &&
+                /^https?:\/\//i.test(t.url) &&
+                !t.url.startsWith("chrome-extension://") &&
+                !t.url.startsWith("chrome://") &&
+                !t.url.startsWith("edge://") &&
+                !t.url.startsWith("about:")
+              ) {
+                targetTab = t;
+                break;
               }
             }
-
-            let response;
-            if (targetTab && targetTab.url) {
-              const url = targetTab.url;
-              if (!/^https?:\/\//i.test(url)) {
-                response = { url, title: targetTab.title, securityData: null };
-              } else {
-                const result = await getCachedOrScan(url);
-                response = {
-                  url,
-                  title: targetTab.title,
-                  securityData: result || null,
-                };
-              }
-            } else {
-              response = { url: null, title: null, securityData: null };
-            }
-
-            chrome.runtime
-              .sendMessage({
-                action: "getCurrentTabResponse",
-                requestId: request.requestId,
-                data: response,
-              })
-              .catch(() => {});
-          } catch (error) {
-            console.error("Error in getCurrentTab handler:", error);
-            chrome.runtime
-              .sendMessage({
-                action: "getCurrentTabResponse",
-                requestId: request.requestId,
-                data: { url: null, title: null, securityData: null, error: error.message },
-              })
-              .catch(() => {});
           }
-        })();
-        return false;
-      } else {
-        (async () => {
-          try {
-            const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            let targetTab = activeTabs[0];
 
-            if (
-              !targetTab ||
-              !targetTab.url ||
-              !/^https?:\/\//i.test(targetTab.url) ||
-              targetTab.url.startsWith("chrome-extension://") ||
-              targetTab.url.startsWith("chrome://") ||
-              targetTab.url.startsWith("edge://") ||
-              targetTab.url.startsWith("about:")
-            ) {
-              const allTabs = await chrome.tabs.query({ currentWindow: true });
-              for (const t of allTabs) {
-                if (
-                  t.url &&
-                  /^https?:\/\//i.test(t.url) &&
-                  !t.url.startsWith("chrome-extension://") &&
-                  !t.url.startsWith("chrome://") &&
-                  !t.url.startsWith("edge://") &&
-                  !t.url.startsWith("about:")
-                ) {
-                  targetTab = t;
-                  break;
-                }
-              }
-            }
-
-            if (targetTab && targetTab.url) {
-              const url = targetTab.url;
-              if (!/^https?:\/\//i.test(url)) {
-                sendResponse({ url, title: targetTab.title, securityData: null });
-                return;
-              }
+          let response;
+          if (targetTab && targetTab.url) {
+            const url = targetTab.url;
+            if (!/^https?:\/\//i.test(url)) {
+              response = { url, title: targetTab.title, securityData: null };
+            } else {
               const result = await getCachedOrScan(url);
-              sendResponse({
+              response = {
                 url,
                 title: targetTab.title,
                 securityData: result || null,
-              });
-            } else {
-              sendResponse({ url: null, title: null, securityData: null });
+              };
             }
-          } catch (error) {
-            console.error("Error in getCurrentTab handler:", error);
-            sendResponse({ url: null, title: null, securityData: null, error: error.message });
+          } else {
+            response = { url: null, title: null, securityData: null };
           }
-        })();
-        return true;
-      }
+
+          chrome.runtime
+            .sendMessage({
+              action: "getCurrentTabResponse",
+              requestId: request.requestId,
+              data: response,
+            })
+            .catch(() => {});
+        } catch (error) {
+          console.error("Error in getCurrentTab handler:", error);
+          chrome.runtime
+            .sendMessage({
+              action: "getCurrentTabResponse",
+              requestId: request.requestId,
+              data: { url: null, title: null, securityData: null, error: error.message },
+            })
+            .catch(() => {});
+        }
+      })();
+      return false;
     }
 
     return false;
