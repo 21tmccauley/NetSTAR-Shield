@@ -184,6 +184,12 @@ app.get("/scan", (req, res) => {
 
   console.log(`[${new Date().toISOString()}] Scanning: ${targetDomain}`);
 
+  // When USE_SCORING_TEST_DATA=1 (e.g. in CI), pass --use-test-data so the scoring
+  // engine uses built-in test data instead of live fetches (avoids network/timeouts).
+  const useTestData = /^(1|true|yes)$/i.test(String(process.env.USE_SCORING_TEST_DATA || "").trim());
+  const pythonArgv = ["-t", targetDomain];
+  if (useTestData) pythonArgv.push("--use-test-data");
+
   // Try multiple python executables in order to be robust across systems.
   // On Windows users may have 'python', the 'py' launcher, or rarely 'python3'.
   // On Unix-like systems prefer 'python3' then 'python'. We attempt each
@@ -216,7 +222,7 @@ app.get("/scan", (req, res) => {
 
   let responded = false;
 
-  spawnPythonWithFallback(pythonScript, ["-t", targetDomain], {
+  spawnPythonWithFallback(pythonScript, pythonArgv, {
     cwd: path.dirname(pythonScript),
   })
     .then((py) => {
