@@ -2,6 +2,7 @@ import { getCachedOrScan } from "./scan.js";
 import { updateIcon } from "./icon.js";
 import { updateRecentScans } from "./recentScans.js";
 import { maybeShowInPageAlert, maybeShowRiskNotification } from "./notifications.js";
+import { generateAutoScanTraceId } from "./constants.js";
 
 /**
  * Auto scan on navigation and activate.
@@ -14,7 +15,12 @@ export function registerTabListeners() {
       // request is sent. See Docs/url-sanitization-policy.md.
       if (!/^https?:\/\//i.test(tab.url)) return;
 
-      const result = await getCachedOrScan(tab.url);
+      const scanTraceId = generateAutoScanTraceId();
+      const t0 = Date.now();
+      const result = await getCachedOrScan(tab.url, scanTraceId);
+      const elapsedMs = Date.now() - t0;
+      const cacheStatus = result._cacheStatus || "unknown";
+      console.log("[NetSTAR][timing] autoScan:navigation", { scanTraceId, elapsedMs, cacheStatus });
 
       updateIcon(tabId, result.safetyScore);
       updateRecentScans(tab.url, result.safetyScore);
@@ -32,7 +38,12 @@ export function registerTabListeners() {
     if (tab.url) {
       // Skip non-http(s) schemes (same policy as onUpdated above).
       if (!/^https?:\/\//i.test(tab.url)) return;
-      const result = await getCachedOrScan(tab.url);
+      const scanTraceId = generateAutoScanTraceId();
+      const t0 = Date.now();
+      const result = await getCachedOrScan(tab.url, scanTraceId);
+      const elapsedMs = Date.now() - t0;
+      const cacheStatus = result._cacheStatus || "unknown";
+      console.log("[NetSTAR][timing] autoScan:activation", { scanTraceId, elapsedMs, cacheStatus });
       updateIcon(activeInfo.tabId, result.safetyScore);
       updateRecentScans(tab.url, result.safetyScore);
       // No notification on tab switch to avoid noise

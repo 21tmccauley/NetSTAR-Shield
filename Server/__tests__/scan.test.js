@@ -162,6 +162,19 @@ describe("GET /scan", () => {
 
       expect(res.body.safetyScore).toBe(80);
     });
+
+    it("accepts X-Scan-Trace-Id header and returns unchanged response shape", async () => {
+      const res = await request(app)
+        .get("/scan?domain=example.com")
+        .set("X-Scan-Trace-Id", "scan-test-123-abc")
+        .expect(200);
+
+      expect(res.body).toHaveProperty("safetyScore");
+      expect(res.body).toHaveProperty("aggregatedScore");
+      expect(res.body).toHaveProperty("indicators");
+      expect(res.body).toHaveProperty("timestamp");
+      expect(res.body).not.toHaveProperty("scanTraceId");
+    });
   });
 
   // ── Scoring engine failure paths ───────────────────────────────────

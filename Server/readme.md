@@ -74,3 +74,43 @@ Tests cover:
 ### App Export for Testing
 
 The server only calls `app.listen()` when run directly (`require.main === module`). When the test suite `require`s `server.js`, it receives the Express `app` via `module.exports = { app }` without starting a listener, so tests can use supertest against the app in-process.
+
+---
+
+## Performance logging and trace ID
+
+To correlate scan latency across the extension, server, and scoring engine, the server supports an optional **trace ID** that flows end-to-end.
+
+### Propagation
+
+- **Extension → Server:** The extension sends `X-Scan-Trace-Id` on each `/scan` request (manual and auto scans). If omitted, the server generates a fallback ID (e.g. `scan-srv-<timestamp>-<random>`).
+- **Server → Scoring Engine:** The server passes the same ID to the Python script as `--trace-id <id>` (or `-i <id>`). Both `scoring_main.py` and `score_engine.py` accept this flag.
+
+### Server log shape
+
+For each `/scan` request the server logs:
+
+- **Success:** A `[scan][score-response]` JSON line that includes:
+  - `scanTraceId` — the trace ID for this request
+  - `timing` — breakdown of where time was spent:
+    - `totalMs` — total request duration
+    - `normalizeMs` — URL normalization/validation
+    - `pythonMs` — scoring engine process duration
+    - `parseMs` — parsing Python stdout JSON
+    - `formatMs` — building the extension payload
+- **Errors:** A `[scan][error]` JSON line with `scanTraceId`, `errorType`, and any available timings (`totalMs`, `pythonMs`, etc.). The HTTP response body is unchanged.
+
+### Example
+
+```json
+{"scanTraceId":"scan-1710123456789-abc123","timing":{"totalMs":4523,"pythonMs":4400,"normalizeMs":0,"parseMs":2,"formatMs":1}, ...}
+```
+
+Use `scanTraceId` to match server logs with extension `[NetSTAR][timing]` logs and Python stderr `[scan][timing]` lines.
+
+### Manual verification
+
+1. Start the server and load the extension on the performance branch.
+2. Open DevTools for the extension (e.g. Service Worker / background page) and watch for `[NetSTAR][timing]` logs (manualScan, scanUrl, getCachedOrScan, performSecurityScan).
+3. Run a manual scan from the popup; in the server terminal you should see `[scan][score-response]` with the same `scanTraceId` as in the extension logs.
+4. Optionally run the scoring engine directly: `python "Scoring Engine/scoring_main.py" -t example.com -i my-trace-123 -v` and confirm stderr shows `[scan][timing] traceId=my-trace-123 ...`.

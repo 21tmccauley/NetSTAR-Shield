@@ -45,6 +45,9 @@ DEFAULT_URL = 'netstar.ai'
 # Verbose mode flag
 VERBOSE = False
 
+# Optional trace ID for correlating logs with extension/server (set by CLI --trace-id)
+SCAN_TRACE_ID = None
+
 MAL_TLDS = [
     "ac", "ai", "app", "at", "autos", "biz", "bond", "br", "bz", "ca", "cc",
     "cfd", "claims", "click", "cn", "co", "com", "coupons", "courses",

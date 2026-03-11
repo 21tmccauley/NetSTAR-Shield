@@ -152,7 +152,8 @@ describe("getCachedOrScan", () => {
 
     const result = await getCachedOrScan("https://www.example.com");
 
-    expect(result).toEqual(cached);
+    expect(result).toMatchObject(cached);
+    expect(result._cacheStatus).toBe("hit");
     expect(globalThis.fetch).not.toHaveBeenCalled();
     expect(chrome.storage.local.set).not.toHaveBeenCalled();
   });

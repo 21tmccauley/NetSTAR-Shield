@@ -2,6 +2,7 @@ import { getCachedOrScan } from "./scan.js";
 import { updateIcon } from "./icon.js";
 import { updateRecentScans } from "./recentScans.js";
 import { maybeShowRiskNotification } from "./notifications.js";
+import { generateScanTraceId } from "./constants.js";
 
 /**
  * Messaging used by popup and other pages.
@@ -21,6 +22,10 @@ export function registerMessageListeners() {
 
     if (request.action === "scanUrl") {
       (async () => {
+        const scanTraceId = request.traceId || generateScanTraceId();
+        const t0 = Date.now();
+        console.log("[NetSTAR][timing] scanUrl: start", { scanTraceId });
+
         try {
           // Block inputs that don't contain a letter-based TLD (e.g. ".com", ".org").
           // Rejects single words, plain IPs, and strings with no TLD.
@@ -35,11 +40,20 @@ export function registerMessageListeners() {
             return;
           }
 
-          const result = await getCachedOrScan(request.url);
-          sendResponse(result);
+          const result = await getCachedOrScan(request.url, scanTraceId);
+          const elapsedMs = Date.now() - t0;
+          const cacheStatus = result._cacheStatus || "unknown";
+          console.log("[NetSTAR][timing] scanUrl: result", {
+            scanTraceId,
+            elapsedMs,
+            cacheStatus,
+            safetyScore: result?.safetyScore,
+          });
+          sendResponse({ ...result, scanTraceId });
 
           // Fire-and-forget side-effects so the popup is unblocked immediately
           void (async () => {
+            const tSideEffects = Date.now();
             try {
               const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
               if (tabs[0]) {
@@ -47,13 +61,17 @@ export function registerMessageListeners() {
                 updateRecentScans(request.url, result.safetyScore);
                 await maybeShowRiskNotification(request.url, result.safetyScore);
               }
+              console.log("[NetSTAR][timing] scanUrl: sideEffects", {
+                scanTraceId,
+                elapsedMs: Date.now() - tSideEffects,
+              });
             } catch (e) {
               console.error("[NetSTAR] scanUrl side-effects error:", e);
             }
           })();
         } catch (error) {
           console.error("Error in scanUrl:", error);
-          sendResponse({ error: true, message: error.message });
+          sendResponse({ error: true, message: error.message, scanTraceId });
         }
       })();
 

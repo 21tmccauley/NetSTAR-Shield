@@ -130,9 +130,16 @@ if __name__ == '__main__':
         action='store_true',
         help="Run the script using the internal test_scans data instead of live API calls."
     )
-    
+    parser.add_argument(
+        '-i', '--trace-id',
+        type=str,
+        default=None,
+        help="Trace ID for correlating logs with extension and server (e.g. scan-1234567890-abc)."
+    )
+
     args = parser.parse_args()
     app_config.VERBOSE = args.verbose
+    app_config.SCAN_TRACE_ID = getattr(args, 'trace_id', None)
     
     all_scans = {}
     scan_date = None
@@ -177,6 +184,8 @@ if __name__ == '__main__':
     output['aggregatedScore'] = final_scores.get('Aggregated_Score')
     print(json.dumps(output, indent=2))
 
+    scan_trace_id = getattr(app_config, 'SCAN_TRACE_ID', None) or ''
+    print(f"[scan][timing] traceId={scan_trace_id} stage=total elapsedSeconds={elapsed_time:.3f}", file=sys.stderr)
     if app_config.VERBOSE:
         print("-------------------------------------------", file=sys.stderr)
         print(f"Total execution time: {elapsed_time:.2f} seconds", file=sys.stderr)

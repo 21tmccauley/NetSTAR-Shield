@@ -635,9 +635,16 @@ if __name__ == '__main__':
         action='store_true',
         help="Run the script using the internal test_scans data instead of live API calls."
     )
-    
+    parser.add_argument(
+        '-i', '--trace-id',
+        type=str,
+        default=None,
+        help="Trace ID for correlating logs with extension and server (e.g. scan-1234567890-abc)."
+    )
+
     args = parser.parse_args()
-    
+    scan_trace_id = getattr(args, 'trace_id', None) or ''
+
     all_scans = {}
     scan_date = None
 
@@ -681,6 +688,8 @@ if __name__ == '__main__':
     }
     print(json.dumps(payload))
 
+    # Structured timing for correlation with server/extension logs
+    print(f"[scan][timing] traceId={scan_trace_id} stage=total elapsedSeconds={elapsed_time:.3f}", file=sys.stderr)
     # Human-readable summary to stderr (does not affect server parsing)
     print("\n--- Individual Scan Scores (Max 100) ---", file=sys.stderr)
     for key, value in final_scores.items():

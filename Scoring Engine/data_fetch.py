@@ -1,5 +1,6 @@
 import json
 import subprocess
+import time
 from typing import Optional, List, Tuple, Dict
 from concurrent.futures import ThreadPoolExecutor
 from config import BASE_URL, API_ENDPOINTS
@@ -96,8 +97,13 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
 
 
     # 4. Execute the command
+    t0 = time.time()
     output = execute_curl_command(CURL_COMMAND)
-    
+    elapsed = time.time() - t0
+    trace_id = getattr(app_config, 'SCAN_TRACE_ID', None) or ''
+    if app_config.VERBOSE and trace_id:
+        print(f"[scan][timing] traceId={trace_id} stage=data_fetch endpoint={endpoint} elapsedSeconds={elapsed:.3f}", file=sys.stderr)
+
     if output is None:
         if app_config.VERBOSE:
             print(f"--> Endpoint {endpoint.upper()} failed execution. Skipping.", file=sys.stderr)

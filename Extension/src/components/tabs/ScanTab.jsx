@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Search, Shield, Sparkles, AlertCircle, X } from "lucide-react"
+import { generateScanTraceId } from "@/background/constants.js"
 
 /**
  * ScanTab component - Allows users to manually scan a website for security analysis
@@ -73,12 +74,18 @@ export function ScanTab({ mode, onScanComplete }) {
    */
   const handleScan = () => {
     if (!scanUrl || isScanning) return
+    const scanTraceId = generateScanTraceId()
+    const tStart = typeof performance !== "undefined" ? performance.now() : Date.now()
+    console.log("[NetSTAR][timing] manualScan: start", { scanTraceId, timestamp: Date.now() })
     setIsScanning(true)
     setErrorMessage(null) // Clear any previous error
 
     chrome.runtime.sendMessage(
-      { action: "scanUrl", url: scanUrl },
+      { action: "scanUrl", url: scanUrl, traceId: scanTraceId },
       (result) => {
+        const elapsed = typeof performance !== "undefined" ? performance.now() - tStart : Date.now() - tStart
+        const success = result && !result.error
+        console.log("[NetSTAR][timing] manualScan: finished", { scanTraceId, elapsedMs: Math.round(elapsed), success })
         setIsScanning(false);
 
         // Check if there's an error response

@@ -10,7 +10,7 @@ const app = express();
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
+  res.header("Access-Control-Allow-Headers", "Content-Type, X-Scan-Trace-Id");
   if (req.method === "OPTIONS") return res.sendStatus(200);
   next();
 });
@@ -135,6 +135,10 @@ function formatForExtension(scores, aggregatedScore) {
   };
 }
 
+function generateFallbackTraceId() {
+  return `scan-srv-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function resolvePythonScript() {
   // Prefer the new Scoring Engine folder entrypoint(s).
   const scoringEngineMain = path.join(__dirname, "..", "Scoring Engine", "scoring_main.py");
@@ -152,13 +156,26 @@ function resolvePythonScript() {
 
 // Main endpoint: /scan?domain=example.com OR /scan?url=https://example.com/path
 app.get("/scan", (req, res) => {
+  const scanTraceId = (req.headers["x-scan-trace-id"] || "").trim() || generateFallbackTraceId();
+  const tRequestStart = Date.now();
   const input = req.query.domain || req.query.url || "";
 
   // Normalize and validate the scan target.
   // Returns 400 for invalid, empty, localhost, or plain-IP inputs.
   // See lib/urlSanitize.js and Docs/url-sanitization-policy.md.
+  const tNormalizeStart = Date.now();
   const result = normalizeScanTarget(input);
+  const normalizeMs = Date.now() - tNormalizeStart;
+
   if (!result.ok) {
+    console.log(
+      `[${new Date().toISOString()}] [scan][error] ${JSON.stringify({
+        scanTraceId,
+        errorType: "validation",
+        input: String(input).slice(0, 200),
+        normalizeMs,
+      })}`
+    );
     return res.status(400).json({
       error: true,
       message: result.reason,
@@ -172,6 +189,14 @@ app.get("/scan", (req, res) => {
 
   const pythonScript = resolvePythonScript();
   if (!pythonScript) {
+    const totalMs = Date.now() - tRequestStart;
+    console.log(
+      `[${new Date().toISOString()}] [scan][error] ${JSON.stringify({
+        scanTraceId,
+        errorType: "script_not_found",
+        totalMs,
+      })}`
+    );
     return res.status(500).json({
       error: true,
       message: "Python scoring script not found (scoring_main.py / score_engine.py).",
@@ -182,13 +207,14 @@ app.get("/scan", (req, res) => {
     });
   }
 
-  console.log(`[${new Date().toISOString()}] Scanning: ${targetDomain}`);
+  console.log(`[${new Date().toISOString()}] Scanning: ${targetDomain} [${scanTraceId}]`);
 
   // When USE_SCORING_TEST_DATA=1 (e.g. in CI), pass --use-test-data so the scoring
   // engine uses built-in test data instead of live fetches (avoids network/timeouts).
   const useTestData = /^(1|true|yes)$/i.test(String(process.env.USE_SCORING_TEST_DATA || "").trim());
   const pythonArgv = ["-t", targetDomain];
   if (useTestData) pythonArgv.push("--use-test-data");
+  pythonArgv.push("--trace-id", scanTraceId);
 
   // Try multiple python executables in order to be robust across systems.
   // On Windows users may have 'python', the 'py' launcher, or rarely 'python3'.
@@ -221,11 +247,13 @@ app.get("/scan", (req, res) => {
   }
 
   let responded = false;
+  let tPythonStart = null;
 
   spawnPythonWithFallback(pythonScript, pythonArgv, {
     cwd: path.dirname(pythonScript),
   })
     .then((py) => {
+      tPythonStart = Date.now();
       let output = "";
       let error = "";
 
@@ -244,6 +272,16 @@ app.get("/scan", (req, res) => {
         try {
           py.kill();
         } catch {}
+        const totalMs = Date.now() - tRequestStart;
+        const pythonMs = tPythonStart != null ? Date.now() - tPythonStart : null;
+        console.log(
+          `[${new Date().toISOString()}] [scan][error] ${JSON.stringify({
+            scanTraceId,
+            errorType: "timeout",
+            totalMs,
+            pythonMs,
+          })}`
+        );
         res.status(504).json({
           error: true,
           message: "Scan timeout - scoring engine took too long",
@@ -258,8 +296,19 @@ app.get("/scan", (req, res) => {
         clearTimeout(timeout);
         if (responded) return;
         responded = true;
+        const totalMs = Date.now() - tRequestStart;
+        const pythonMs = tPythonStart != null ? Date.now() - tPythonStart : null;
 
         if (code !== 0 || /Traceback|Error/i.test(error)) {
+          console.log(
+            `[${new Date().toISOString()}] [scan][error] ${JSON.stringify({
+              scanTraceId,
+              errorType: "scoring_engine_failed",
+              totalMs,
+              pythonMs,
+              exitCode: code,
+            })}`
+          );
           return res.status(500).json({
             error: true,
             message: error || `Scoring engine failed (exit code ${code})`,
@@ -271,12 +320,25 @@ app.get("/scan", (req, res) => {
         }
 
         try {
+          const tParseStart = Date.now();
           const { scores, aggregatedScore } = parseScoringOutput(output);
+          const parseMs = Date.now() - tParseStart;
+
+          const tFormatStart = Date.now();
           const response = formatForExtension(scores, aggregatedScore);
+          const formatMs = Date.now() - tFormatStart;
 
           // Debug: log the exact score payload we're about to return
           try {
             const debugPayload = {
+              scanTraceId,
+              timing: {
+                totalMs,
+                pythonMs,
+                normalizeMs,
+                parseMs,
+                formatMs,
+              },
               request: {
                 method: req.method,
                 path: req.path,
@@ -316,6 +378,15 @@ app.get("/scan", (req, res) => {
 
           return res.json(response);
         } catch (e) {
+          console.log(
+            `[${new Date().toISOString()}] [scan][error] ${JSON.stringify({
+              scanTraceId,
+              errorType: "parse_or_format",
+              totalMs,
+              pythonMs,
+              message: e?.message,
+            })}`
+          );
           return res.status(500).json({
             error: true,
             message: `Failed to parse scoring results: ${e.message}`,
@@ -329,6 +400,15 @@ app.get("/scan", (req, res) => {
       } catch (e) {
         if (!responded) {
           responded = true;
+          const totalMs = Date.now() - tRequestStart;
+          console.log(
+            `[${new Date().toISOString()}] [scan][error] ${JSON.stringify({
+              scanTraceId,
+              errorType: "handler_error",
+              totalMs,
+              message: e?.message,
+            })}`
+          );
           res.status(500).json({
             error: true,
             message: e?.message || "Scoring handler error",
@@ -341,6 +421,15 @@ app.get("/scan", (req, res) => {
       }
     })
     .catch((err) => {
+      const totalMs = Date.now() - tRequestStart;
+      console.log(
+        `[${new Date().toISOString()}] [scan][error] ${JSON.stringify({
+          scanTraceId,
+          errorType: "spawn_failed",
+          totalMs,
+          message: err?.message,
+        })}`
+      );
       return res.status(500).json({
         error: true,
         message: `Failed to start python scoring engine: ${err.message}`,

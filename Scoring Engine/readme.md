@@ -26,6 +26,17 @@ run `python scoring_main.py -v` to get additional information on the execution o
 
 For running the test suite, see [TESTING.md](TESTING.md).
 
+### Trace ID (performance logging)
+
+When the server invokes the scoring engine it passes `--trace-id <id>` (or `-i <id>`) so logs can be correlated with the extension and server.
+
+- **scoring_main.py:** Use `python scoring_main.py -t example.com -i my-trace-123`. The script writes a structured line to **stderr** (never stdout):  
+  `[scan][timing] traceId=my-trace-123 stage=total elapsedSeconds=1.234`
+- **score_engine.py:** Same `-i` / `--trace-id`; total execution time is also logged to stderr with the trace ID.
+- **data_fetch.py:** When `VERBOSE` is enabled and a trace ID is set (via config from scoring_main), each API endpoint fetch logs a line like:  
+  `[scan][timing] traceId=... stage=data_fetch endpoint=cert elapsedSeconds=0.123`  
+  This does not affect the JSON output on stdout.
+
 ## Fine-tune February  
 Listed below are all of the things that need attention:  
 * scoring_main.py
