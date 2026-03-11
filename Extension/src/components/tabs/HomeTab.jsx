@@ -162,12 +162,21 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
             if (result && !result.error && result.safetyScore !== undefined) {
               setSafetyScore(result.safetyScore);
               setSecurityData(result);
+              setScanError(null);
+              setScanState("success");
+            } else {
+              const msg = result?.message || result?.error || "Scan failed";
+              setSecurityData({ error: true, message: msg });
+              setScanError(msg);
+              setScanState("error");
             }
           } catch (error) {
-            // Ignore and keep defaults; UI still renders.
-            setScanError({ error: true, message: error?.message || "Scan failed" });
-            setScanState(error?.message || "Scan failed");
             console.error("Error getting manual scan data:", error);
+            const msg = error?.message || "Scan failed";
+
+            setSecurityData({ error: true, message: msg });
+            setScanError(msg);
+            setScanState("error");
           }
         }
 
@@ -177,114 +186,50 @@ export function HomeTab({ mode, onNavigate, forceShowIndicators, overrideUrl, ov
       // Default behavior: Get current tab URL and security data.
       if (typeof chrome !== "undefined" && chrome.runtime) {
         try {
-          const response = await new Promise((resolve, reject) => {
-            let resolved = false;
-            const requestId = `getCurrentTab_${Date.now()}_${Math.random()}`;
-
-            // Set up a one-time message listener for the response
-            const messageListener = (message) => {
-              if (message.action === "getCurrentTabResponse" && message.requestId === requestId) {
-                chrome.runtime.onMessage.removeListener(messageListener);
-                if (!resolved) {
-                  resolved = true;
-                  resolve(message.data);
-                }
-                return true;
+          const response = await new Promise((resolve) => {
+            chrome.runtime.sendMessage({ action: "getCurrentTab" }, (resp) => {
+              const err = chrome.runtime.lastError;
+              if (err) {
+                resolve({ error: err.message || String(err) });
+                return;
               }
-            };
-
-            chrome.runtime.onMessage.addListener(messageListener);
-
-            // Send the request
-            chrome.runtime.sendMessage(
-              {
-                action: "getCurrentTab",
-                requestId: requestId,
-              },
-              (response) => {
-                const callbackError = chrome.runtime.lastError;
-
-                // If we got a response synchronously, use it
-                if (response && typeof response === "object" && response.url !== undefined) {
-                  chrome.runtime.onMessage.removeListener(messageListener);
-                  if (!resolved) {
-                    resolved = true;
-                    resolve(response);
-                  }
-                  return;
-                }
-
-                // Check for port closed error - expected in Manifest V3 with async handlers
-                if (callbackError) {
-                  const errorMsg = callbackError.message || String(callbackError);
-                  if (
-                    errorMsg.includes("message port closed") ||
-                    errorMsg.includes("The message port closed before a response was received")
-                  ) {
-                    // Wait for message listener to receive the response
-                    return;
-                  }
-
-                  // Other fatal errors
-                  if (
-                    errorMsg.includes("Receiving end does not exist") ||
-                    errorMsg.includes("Could not establish connection") ||
-                    errorMsg.includes("Extension context invalidated")
-                  ) {
-                    chrome.runtime.onMessage.removeListener(messageListener);
-                    if (!resolved) {
-                      resolved = true;
-                      reject(callbackError);
-                    }
-                    return;
-                  }
-                }
-              }
-            );
-
-            // Timeout fallback
-            setTimeout(() => {
-              if (!resolved) {
-                chrome.runtime.onMessage.removeListener(messageListener);
-                resolved = true;
-                resolve({ error: true, message: "Timed out waiting for scan result" });
-              }
-            }, 15000);
+              resolve(resp);
+            });
           });
 
           if (!isMounted || !response) return;
 
           if (response.error) {
-            const msg = response.error?.message || "Scan failed";
+            const msg = typeof response.error === "string"
+              ? response.error
+              : (response.message || "Scan failed");
             setSecurityData({ error: true, message: msg });
             setScanError(msg);
             setScanState("error");
             return;
           }
 
-          if (response.url) {
-            setHostnameFromUrl(response.url);
-          }
-          // Always end loading if we got a response object back:
+          if (response.url) setHostnameFromUrl(response.url);
+
           if (response.securityData) {
             setSecurityData(response.securityData);
-
             if (response.securityData.safetyScore !== undefined) {
               setSafetyScore(response.securityData.safetyScore);
             }
-
+            setScanError(null);
             setScanState("success");
             return;
           }
-          // If the background answered but didn't include data, treat as error:
-          setSecurityData({ error: true, message: "No security data returned" });
-          setScanError("No security data returned");
+
+          // Background responded but no data — show error instead of spinning forever
+          const msg = "No security data returned";
+          setSecurityData({ error: true, message: msg });
+          setScanError(msg);
           setScanState("error");
-          return;
         } catch (error) {
-          console.error("Error getting current tab:", error);
-          setSecurityData({ error: true, message: error?.message || "Scan failed" });
-          setScanError(error?.message || "Scan failed");
+          const msg = error?.message || "Scan failed";
+          setSecurityData({ error: true, message: msg });
+          setScanError(msg);
           setScanState("error");
         }
       } else {
