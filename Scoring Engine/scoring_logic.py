@@ -644,7 +644,9 @@ def calculate_security_score(all_scans: dict, scan_date: datetime) -> dict: #CHA
         print(f"Error in conn_sec scan: {e}", file=sys.stderr)
 
     try:
-        score_dom_rep(all_scans['mail_scan'], all_scans['method_scan'], all_scans['rdap_scan'], scores)
+        # Method scan removed for performance; treat as optimal (HEAD+GET only) when absent
+        method_data = all_scans.get('method_scan', {'flag': 3})
+        score_dom_rep(all_scans['mail_scan'], method_data, all_scans['rdap_scan'], scores)
     except Exception as e:
         print(f"Error in dom_rep scan: {e}", file=sys.stderr)
 

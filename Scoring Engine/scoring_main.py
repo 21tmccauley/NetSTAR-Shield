@@ -67,10 +67,6 @@ test_scans = {
         'spf': ['v=spf1 include:spf1.amazon.com -all'],
         'dmarc': ['v=DMARC1; p=quarantine; pct=100;']
     },
-    'method_scan': {
-        'url': 'amazon.com',
-        'flag': 7
-    },
     'rdap_scan': [
         {
             'host': 'amazon.com',
@@ -140,7 +136,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     app_config.VERBOSE = args.verbose
     app_config.SCAN_TRACE_ID = getattr(args, 'trace_id', None)
-    
+    scan_trace_id = getattr(app_config, 'SCAN_TRACE_ID', None) or ''
+
     all_scans = {}
     scan_date = None
 
@@ -150,10 +147,19 @@ if __name__ == '__main__':
     # ----------------------------------------------------
 
     # 2. Decide whether to use test data or fetch live data
+    # Also record a dedicated data_fetch_total timing segment for visibility.
     if args.use_test_data:
         if app_config.VERBOSE:
             print(f"--- Running analysis on TEST DATA ---", file=sys.stderr)
+        t_data_fetch_start = time.time()
         all_scans = test_scans
+        data_fetch_elapsed = time.time() - t_data_fetch_start
+        if scan_trace_id:
+            print(
+                f"[scan][timing] traceId={scan_trace_id} stage=data_fetch_total elapsedSeconds={data_fetch_elapsed:.3f}",
+                file=sys.stderr,
+            )
+            sys.stderr.flush()
         # For reproducible results, we'll set a fixed date for the expiration checks.
         # Cert Sample Expiration: 2025-12-15.
         scan_date = datetime(2025, 10, 15)
@@ -163,7 +169,15 @@ if __name__ == '__main__':
         # For live data, use the real date!
         scan_date = datetime.now()
         # *** CHANGED TO THE CONCURRENT FETCH FUNCTION ***
+        t_data_fetch_start = time.time()
         all_scans = fetch_scan_data_concurrent(args.target)
+        data_fetch_elapsed = time.time() - t_data_fetch_start
+        if scan_trace_id:
+            print(
+                f"[scan][timing] traceId={scan_trace_id} stage=data_fetch_total elapsedSeconds={data_fetch_elapsed:.3f}",
+                file=sys.stderr,
+            )
+            sys.stderr.flush()
     
     # 3. Check if we have data, then calculate and print scores
     if not all_scans:
@@ -171,7 +185,16 @@ if __name__ == '__main__':
             print("No scan data was retrieved. Exiting.", file=sys.stderr)
         sys.exit(1)
 
+    # Dedicated scoring timing segment
+    t_scoring_start = time.time()
     final_scores = calculate_security_score(all_scans, scan_date)
+    scoring_elapsed = time.time() - t_scoring_start
+    if scan_trace_id:
+        print(
+            f"[scan][timing] traceId={scan_trace_id} stage=scoring elapsedSeconds={scoring_elapsed:.3f}",
+            file=sys.stderr,
+        )
+        sys.stderr.flush()
     
     # ----------------------------------------------------
     # END TIMER AND CALCULATE 
@@ -184,8 +207,8 @@ if __name__ == '__main__':
     output['aggregatedScore'] = final_scores.get('Aggregated_Score')
     print(json.dumps(output, indent=2))
 
-    scan_trace_id = getattr(app_config, 'SCAN_TRACE_ID', None) or ''
     print(f"[scan][timing] traceId={scan_trace_id} stage=total elapsedSeconds={elapsed_time:.3f}", file=sys.stderr)
+    sys.stderr.flush()
     if app_config.VERBOSE:
         print("-------------------------------------------", file=sys.stderr)
         print(f"Total execution time: {elapsed_time:.2f} seconds", file=sys.stderr)

@@ -38,11 +38,10 @@ WEIGHTS = {
 # --- GLOBAL CONFIGURATION ---
 BASE_URL = 'https://w4.netstar.dev/'
 API_ENDPOINTS = [
-    'cert', 
-    'dns', 
-    'hval', 
-    'mail', 
-    'method', 
+    'cert',
+    'dns',
+    'hval',
+    'mail',
     'rdap'
 ]
 
@@ -563,7 +562,9 @@ def calculate_security_score(all_scans: dict, scan_date: datetime) -> dict: #CHA
         
     score_conn_sec(all_scans['hval_scan'], all_scans['cert_scan'], scores)
         
-    score_dom_rep(all_scans['mail_scan'], all_scans['method_scan'], all_scans['rdap_scan'], scores)
+    # Method scan removed for performance; treat as optimal (HEAD+GET only) when absent
+    method_data = all_scans.get('method_scan', {'flag': 3})
+    score_dom_rep(all_scans['mail_scan'], method_data, all_scans['rdap_scan'], scores)
 
     score_cred_safety(all_scans['cert_scan'], all_scans['hval_scan'], scores)
 
@@ -606,10 +607,6 @@ test_scans = {
         "mx":["aspmx.l.google.com", "alt2.aspmx.l.google.com", "alt1.aspmx.l.google.com", "aspmx2.googlemail.com", "aspmx3.googlemail.com"],
         "spf":["v=spf1 include:amazonses.com ... ~all"],
         "dmarc":["v=DMARC1; p=reject; sp=reject; pct=100;fo=1; ri=3600;  rua=mailto:dmarc.rua@medium.com; ruf=mailto:dmarc.rua@medium.com,mailto:ruf@dmarc.medium.com"]
-    },
-    # Method Scan Sample (Optimal: Only HEAD (1) + GET (2) allowed)
-    'method_scan': {
-        "flag":3
     },
     # RDAP Scan Sample (Good: 2 servers, but same vendor)
     'rdap_scan': {
@@ -654,9 +651,18 @@ if __name__ == '__main__':
     # ----------------------------------------------------
 
     # 2. Decide whether to use test data or fetch live data
+    # Also record a dedicated data_fetch_total timing segment for visibility.
     if args.use_test_data:
         print(f"--- Running analysis on TEST DATA ---")
+        t_data_fetch_start = time.time()
         all_scans = test_scans
+        data_fetch_elapsed = time.time() - t_data_fetch_start
+        if scan_trace_id:
+            print(
+                f"[scan][timing] traceId={scan_trace_id} stage=data_fetch_total elapsedSeconds={data_fetch_elapsed:.3f}",
+                file=sys.stderr,
+            )
+            sys.stderr.flush()
         # For reproducible results, we'll set a fixed date for the expiration checks.
         # Cert Sample Expiration: 2025-12-15.
         scan_date = datetime(2025, 10, 15)
@@ -665,14 +671,31 @@ if __name__ == '__main__':
         # For live data, use the real date!
         scan_date = datetime.now()
         # *** CHANGED TO THE CONCURRENT FETCH FUNCTION ***
+        t_data_fetch_start = time.time()
         all_scans = fetch_scan_data_concurrent(args.target)
+        data_fetch_elapsed = time.time() - t_data_fetch_start
+        if scan_trace_id:
+            print(
+                f"[scan][timing] traceId={scan_trace_id} stage=data_fetch_total elapsedSeconds={data_fetch_elapsed:.3f}",
+                file=sys.stderr,
+            )
+            sys.stderr.flush()
     
     # 3. Check if we have data, then calculate and print scores
     if not all_scans:
         print("No scan data was retrieved. Exiting.")
         sys.exit(1)
 
+    # Dedicated scoring timing segment
+    t_scoring_start = time.time()
     final_scores = calculate_security_score(all_scans, scan_date)
+    scoring_elapsed = time.time() - t_scoring_start
+    if scan_trace_id:
+        print(
+            f"[scan][timing] traceId={scan_trace_id} stage=scoring elapsedSeconds={scoring_elapsed:.3f}",
+            file=sys.stderr,
+        )
+        sys.stderr.flush()
     
     # ----------------------------------------------------
     # END TIMER AND CALCULATE 
@@ -690,6 +713,7 @@ if __name__ == '__main__':
 
     # Structured timing for correlation with server/extension logs
     print(f"[scan][timing] traceId={scan_trace_id} stage=total elapsedSeconds={elapsed_time:.3f}", file=sys.stderr)
+    sys.stderr.flush()
     # Human-readable summary to stderr (does not affect server parsing)
     print("\n--- Individual Scan Scores (Max 100) ---", file=sys.stderr)
     for key, value in final_scores.items():

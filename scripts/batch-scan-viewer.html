@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Batch Scan Results Viewer</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --ok: #22c55e;
+      --err: #ef4444;
+      --score-high: #22c55e;
+      --score-mid: #eab308;
+      --score-low: #ef4444;
+      --accent: #6366f1;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 { margin: 0; font-size: 1.35rem; font-weight: 600; }
+    .load-area {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    label.file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--accent);
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    label.file-label:hover { filter: brightness(1.1); }
+    input[type="file"] { display: none; }
+    .file-name { font-size: 0.85rem; color: var(--muted); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .meta-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .meta-card .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.25rem; }
+    .meta-card .value { font-size: 1.1rem; font-weight: 600; }
+    .meta-card .value.ok { color: var(--ok); }
+    .meta-card .value.err { color: var(--err); }
+
+    .averages {
+      margin-bottom: 1.5rem;
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 900px) { .averages { grid-template-columns: 1fr; } }
+    .avg-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+    }
+    .avg-section h3 { margin: 0 0 0.75rem; font-size: 0.9rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .avg-scan-ms { font-size: 1.5rem; font-weight: 600; }
+    .part-avg-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; }
+    .part-avg-table th { text-align: left; padding: 0.4rem 0.5rem 0.4rem 0; color: var(--muted); font-weight: 500; }
+    .part-avg-table td { padding: 0.35rem 0.5rem 0.35rem 0; border-top: 1px solid var(--border); }
+    .part-avg-table .part-name { font-family: ui-monospace, monospace; }
+    .part-avg-table .part-avg { font-weight: 600; }
+    .part-avg-table tr.sub-row td { padding-left: 1rem; border-top: none; font-size: 0.75rem; }
+    .part-avg-table tr.sub-row .part-name { color: var(--muted); }
+    .part-note { font-size: 0.7rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.4; }
+
+    .timing-graph {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .timing-graph h3 { margin: 0 0 1rem; font-size: 0.9rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .timing-graph-bars { display: flex; flex-direction: column; gap: 0.5rem; }
+    .timing-graph-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; min-height: 1.6rem; }
+    .timing-graph-label { flex: 0 0 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .timing-graph-bar-wrap { flex: 1; min-width: 0; height: 1.25rem; background: var(--bg); border-radius: 6px; overflow: hidden; }
+    .timing-graph-bar { height: 100%; border-radius: 6px; min-width: 2px; transition: width 0.2s ease; }
+    .timing-graph-value { flex: 0 0 70px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    .url-duration-chart {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .url-duration-chart h3 { margin: 0 0 0.5rem; font-size: 0.9rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .url-duration-chart .chart-note { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.75rem; }
+    .url-duration-bars { display: flex; flex-direction: column; gap: 0.35rem; max-height: 420px; overflow-y: auto; }
+    .url-duration-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; min-height: 1.5rem; }
+    .url-duration-label { flex: 0 0 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .url-duration-bar-wrap { flex: 1; min-width: 0; height: 1rem; background: var(--bg); border-radius: 4px; overflow: hidden; }
+    .url-duration-bar { height: 100%; border-radius: 4px; min-width: 2px; background: var(--accent); transition: width 0.2s ease; }
+    .url-duration-bar.err { background: var(--err); }
+    .url-duration-value { flex: 0 0 72px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+    .toolbar {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .toolbar input[type="search"] {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.9rem;
+      min-width: 200px;
+    }
+    .toolbar input[type="search"]::placeholder { color: var(--muted); }
+    .toolbar select {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+    .toolbar label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--muted); cursor: pointer; }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 1;
+    }
+    td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(99, 102, 241, 0.06); }
+    .domain { font-weight: 500; }
+    .status { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; }
+    .status.ok { background: rgba(34, 197, 94, 0.2); color: var(--ok); }
+    .status.err { background: rgba(239, 68, 68, 0.2); color: var(--err); }
+    .score { font-weight: 600; }
+    .score-high { color: var(--score-high); }
+    .score-mid { color: var(--score-mid); }
+    .score-low { color: var(--score-low); }
+    .muted { color: var(--muted); }
+    .timing-details {
+      max-width: 280px;
+      max-height: 120px;
+      overflow: auto;
+      font-size: 0.75rem;
+      font-family: ui-monospace, monospace;
+      background: var(--bg);
+      padding: 0.5rem;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .empty {
+      padding: 3rem 2rem;
+      text-align: center;
+      color: var(--muted);
+    }
+    .empty p { margin: 0 0 0.5rem; }
+    .empty .hint { font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Batch Scan Results</h1>
+      <div class="load-area">
+        <label class="file-label" for="file">
+          Choose results.json
+          <input type="file" id="file" accept=".json,application/json" />
+        </label>
+        <span class="file-name" id="fileName">No file loaded</span>
+      </div>
+    </header>
+
+    <div id="meta" class="meta" style="display: none;"></div>
+    <div id="averages" class="averages" style="display: none;"></div>
+    <div id="timingGraph" class="timing-graph" style="display: none;"></div>
+    <div id="urlDurationChart" class="url-duration-chart" style="display: none;"></div>
+    <div id="toolbar" class="toolbar" style="display: none;">
+      <input type="search" id="search" placeholder="Filter by domain..." />
+      <select id="filterStatus">
+        <option value="">All</option>
+        <option value="ok">OK only</option>
+        <option value="err">Errors only</option>
+      </select>
+      <label><input type="checkbox" id="showTiming" checked /> Show timing columns</label>
+    </div>
+
+    <div class="table-wrap">
+      <div id="empty" class="empty">
+        <p>Load a <code>results.json</code> file from a batch-scan run.</p>
+        <p class="hint">Use the button above to select e.g. <code>scripts/batch-scan-output-.../results.json</code></p>
+      </div>
+      <table id="table" style="display: none;">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let data = null;
+    const fileInput = document.getElementById("file");
+    const fileNameEl = document.getElementById("fileName");
+    const metaEl = document.getElementById("meta");
+    const toolbarEl = document.getElementById("toolbar");
+    const emptyEl = document.getElementById("empty");
+    const tableEl = document.getElementById("table");
+    const theadEl = document.getElementById("thead");
+    const tbodyEl = document.getElementById("tbody");
+    const searchEl = document.getElementById("search");
+    const filterStatusEl = document.getElementById("filterStatus");
+    const showTimingEl = document.getElementById("showTiming");
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      fileNameEl.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          data = JSON.parse(ev.target.result);
+          render();
+        } catch (err) {
+          alert("Invalid JSON: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function scoreClass(s) {
+      if (s == null) return "";
+      if (s >= 75) return "score-high";
+      if (s >= 50) return "score-mid";
+      return "score-low";
+    }
+
+    function formatTimingDetails(raw) {
+      if (raw == null) return "—";
+      try {
+        const arr = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (!Array.isArray(arr) || arr.length === 0) return "—";
+        return arr.map((e) => {
+          const ep = e.endpoint ? ` ${e.endpoint}` : "";
+          return `${e.stage}${ep}: ${Number(e.elapsedSeconds).toFixed(3)}s`;
+        }).join("\n");
+      } catch {
+        return String(raw).slice(0, 200);
+      }
+    }
+
+    /** Per-scan engine duration (meaningful when batch runs in parallel). */
+    function getPerScanMs(r) {
+      return r.engineMs ?? r.timing_totalMs ?? r.timing_pythonMs ?? r.elapsedMs ?? r.requestWallClockMs;
+    }
+
+    function render() {
+      if (!data || !data.results) {
+        emptyEl.style.display = "block";
+        tableEl.style.display = "none";
+        metaEl.style.display = "none";
+        document.getElementById("averages").style.display = "none";
+        document.getElementById("timingGraph").style.display = "none";
+        document.getElementById("urlDurationChart").style.display = "none";
+        toolbarEl.style.display = "none";
+        return;
+      }
+
+      emptyEl.style.display = "none";
+      tableEl.style.display = "table";
+      metaEl.style.display = "grid";
+      toolbarEl.style.display = "flex";
+
+      const query = (searchEl?.value || "").trim().toLowerCase();
+      const statusFilter = filterStatusEl?.value || "";
+      const showTiming = showTimingEl?.checked !== false;
+
+      let rows = data.results;
+      if (query) rows = rows.filter((r) => (r.input || "").toLowerCase().includes(query));
+      if (statusFilter === "ok") rows = rows.filter((r) => r.ok);
+      if (statusFilter === "err") rows = rows.filter((r) => !r.ok);
+
+      const meta = data.meta || {};
+      const total = meta.okCount + meta.errCount || data.results.length;
+      const okCount = meta.okCount ?? data.results.filter((r) => r.ok).length;
+      const errCount = meta.errCount ?? data.results.filter((r) => !r.ok).length;
+      const elapsed = meta.elapsedTotalMs != null ? (meta.elapsedTotalMs / 1000).toFixed(1) + " s" : "—";
+
+      metaEl.innerHTML = `
+        <div class="meta-card"><div class="label">Total</div><div class="value">${total}</div></div>
+        <div class="meta-card"><div class="label">OK</div><div class="value ok">${okCount}</div></div>
+        <div class="meta-card"><div class="label">Errors</div><div class="value err">${errCount}</div></div>
+        <div class="meta-card"><div class="label">Total time</div><div class="value">${elapsed}</div></div>
+        <div class="meta-card"><div class="label">Concurrency</div><div class="value">${meta.concurrency ?? "—"}</div></div>
+        <div class="meta-card"><div class="label">Base URL</div><div class="value" style="font-size:0.85rem;word-break:break-all">${meta.baseUrl ?? "—"}</div></div>
+      `;
+
+      // Averages: use per-scan engine duration (meaningful when parallel); fallback to request wall clock for old results
+      const scanTimes = rows.map((r) => getPerScanMs(r)).filter((v) => v != null);
+      const avgScanMs = scanTimes.length ? (scanTimes.reduce((a, b) => a + b, 0) / scanTimes.length).toFixed(0) : null;
+
+      const partSums = {};
+      const partCounts = {};
+      for (const r of rows) {
+        let arr = r.timing_scoringEngineDetails;
+        if (arr == null) continue;
+        try {
+          arr = typeof arr === "string" ? JSON.parse(arr) : arr;
+        } catch { continue; }
+        if (!Array.isArray(arr)) continue;
+        for (const e of arr) {
+          const sec = Number(e.elapsedSeconds);
+          if (Number.isNaN(sec)) continue;
+          const key = e.endpoint ? `${e.stage} ${e.endpoint}` : e.stage;
+          partSums[key] = (partSums[key] || 0) + sec;
+          partCounts[key] = (partCounts[key] || 0) + 1;
+        }
+      }
+      const partEntries = Object.keys(partSums)
+        .map((key) => ({ key, sum: partSums[key], n: partCounts[key], avg: partSums[key] / partCounts[key] }))
+        .sort((a, b) => a.key.localeCompare(b.key));
+
+      // Build grouped view: wall-clock phases first, then "how long each API call took" (parallel)
+      const fmt = (avg) => (avg < 1 ? (avg * 1000).toFixed(0) + " ms" : avg.toFixed(3) + " s");
+      const getPart = (k) => partEntries.find((e) => e.key === k);
+      const dataFetchTotal = getPart("data_fetch_total");
+      const scoring = getPart("scoring");
+      const totalStage = getPart("total");
+      const dataFetchEndpoints = partEntries.filter((e) => e.key.startsWith("data_fetch ") && e.key !== "data_fetch_total");
+
+      const partRows = [];
+      if (dataFetchTotal) {
+        partRows.push(`<tr><td class="part-name">Data fetch (all APIs, parallel)</td><td>${dataFetchTotal.n}</td><td class="part-avg">${fmt(dataFetchTotal.avg)}</td></tr>`);
+        for (const e of dataFetchEndpoints) {
+          const label = e.key.replace("data_fetch ", "");
+          partRows.push(`<tr class="sub-row"><td class="part-name">↳ ${escapeHtml(label)} (each call)</td><td>${e.n}</td><td class="part-avg">${fmt(e.avg)}</td></tr>`);
+        }
+      }
+      if (scoring) partRows.push(`<tr><td class="part-name">Scoring</td><td>${scoring.n}</td><td class="part-avg">${fmt(scoring.avg)}</td></tr>`);
+      if (totalStage) partRows.push(`<tr><td class="part-name">Total (Python run)</td><td>${totalStage.n}</td><td class="part-avg">${fmt(totalStage.avg)}</td></tr>`);
+      // Any other stages (e.g. from older data)
+      for (const e of partEntries) {
+        if (["data_fetch_total", "scoring", "total"].includes(e.key) || e.key.startsWith("data_fetch ")) continue;
+        partRows.push(`<tr><td class="part-name">${escapeHtml(e.key)}</td><td>${e.n}</td><td class="part-avg">${fmt(e.avg)}</td></tr>`);
+      }
+
+      // Build chart data (same order as table: fetch total, endpoints, scoring, total)
+      const chartBars = [];
+      const barColors = ["#6366f1", "#8b5cf6", "#a855f7", "#c084fc", "#d8b4fe", "#e879f9", "#22d3ee", "#2dd4bf", "#f59e0b"];
+      if (dataFetchTotal) {
+        chartBars.push({ label: "Data fetch (all APIs, parallel)", avg: dataFetchTotal.avg, color: barColors[0] });
+        for (const e of dataFetchEndpoints) {
+          chartBars.push({ label: "↳ " + e.key.replace("data_fetch ", ""), avg: e.avg, color: barColors[1 + (chartBars.length % 5)] });
+        }
+      }
+      if (scoring) chartBars.push({ label: "Scoring", avg: scoring.avg, color: barColors[7] });
+      if (totalStage) chartBars.push({ label: "Total (Python run)", avg: totalStage.avg, color: barColors[8] });
+      const maxAvg = chartBars.length ? Math.max(...chartBars.map((b) => b.avg), 0.001) : 1;
+
+      const timingGraphEl = document.getElementById("timingGraph");
+      timingGraphEl.style.display = chartBars.length ? "block" : "none";
+      timingGraphEl.innerHTML = chartBars.length ? `
+        <h3>Timing (avg) — bar chart</h3>
+        <div class="timing-graph-bars">
+          ${chartBars.map((b) => {
+            const pct = Math.round((b.avg / maxAvg) * 100);
+            const valueStr = b.avg < 1 ? (b.avg * 1000).toFixed(0) + " ms" : b.avg.toFixed(3) + " s";
+            return `<div class="timing-graph-row">
+              <span class="timing-graph-label">${escapeHtml(b.label)}</span>
+              <div class="timing-graph-bar-wrap"><div class="timing-graph-bar" style="width:${pct}%;background:${b.color}"></div></div>
+              <span class="timing-graph-value">${valueStr}</span>
+            </div>`;
+          }).join("")}
+        </div>
+      ` : "";
+
+      // URL scan duration bar chart: use per-scan engine ms (meaningful when parallel)
+      const urlDurations = rows
+        .map((r) => ({ label: r.input || "—", ms: getPerScanMs(r), ok: r.ok }))
+        .filter((d) => d.ms != null);
+      const maxMs = urlDurations.length ? Math.max(...urlDurations.map((d) => d.ms), 1) : 1;
+      const urlDurationsSorted = [...urlDurations].sort((a, b) => b.ms - a.ms);
+
+      const urlDurationChartEl = document.getElementById("urlDurationChart");
+      urlDurationChartEl.style.display = urlDurationsSorted.length ? "block" : "none";
+      urlDurationChartEl.innerHTML = urlDurationsSorted.length ? `
+        <h3>Scan duration by URL</h3>
+        <div class="chart-note">Per-scan engine time (meaningful when batch runs in parallel). Sorted by duration (longest first).</div>
+        <div class="url-duration-bars">
+          ${urlDurationsSorted.map((d) => {
+            const pct = Math.round((d.ms / maxMs) * 100);
+            return `<div class="url-duration-row">
+              <span class="url-duration-label" title="${escapeHtml(d.label)}">${escapeHtml(d.label)}</span>
+              <div class="url-duration-bar-wrap"><div class="url-duration-bar ${d.ok ? "" : "err"}" style="width:${pct}%"></div></div>
+              <span class="url-duration-value">${Math.round(d.ms)} ms</span>
+            </div>`;
+          }).join("")}
+        </div>
+      ` : "";
+
+      const averagesEl = document.getElementById("averages");
+      averagesEl.style.display = "grid";
+      averagesEl.innerHTML = `
+        <div class="avg-section">
+          <h3>Average scan time</h3>
+          <div class="avg-scan-ms">${avgScanMs != null ? avgScanMs + " ms" : "—"}</div>
+          <div class="muted" style="font-size:0.8rem;margin-top:0.25rem">Per-scan engine time over ${scanTimes.length} scan(s)</div>
+        </div>
+        <div class="avg-section">
+          <h3>How long each part takes (avg)</h3>
+          ${partRows.length ? `
+          <table class="part-avg-table">
+            <thead><tr><th>Part</th><th>Count</th><th>Avg duration</th></tr></thead>
+            <tbody>${partRows.join("")}</tbody>
+          </table>
+          <div class="part-note">Data fetch runs all API calls in parallel, so total fetch time ≈ "Data fetch (all APIs)". Each row under it is how long that single API (cert, dns, etc.) took; they overlap in time.</div>
+          ` : "<div class=\"muted\" style=\"font-size:0.85rem\">No per-part timing data in results.</div>"}
+        </div>
+      `;
+
+      const timingCols = showTiming
+        ? [
+            "<th>Total ms</th>",
+            "<th>Python ms</th>",
+            "<th>Engine details</th>",
+          ]
+        : [];
+
+      theadEl.innerHTML = `
+        <tr>
+          <th>Domain</th>
+          <th>Status</th>
+          <th>HTTP</th>
+          <th>Engine ms</th>
+          <th>Score</th>
+          <th>Indicators</th>
+          <th>Error</th>
+          ${timingCols.join("")}
+        </tr>
+      `;
+
+      tbodyEl.innerHTML = rows
+        .map(
+          (r) => `
+        <tr>
+          <td class="domain">${escapeHtml(r.input || "—")}</td>
+          <td><span class="status ${r.ok ? "ok" : "err"}">${r.ok ? "OK" : "ERR"}</span></td>
+          <td class="muted">${r.httpStatus ?? "—"}</td>
+          <td>${getPerScanMs(r) != null ? getPerScanMs(r) + " ms" : "—"}</td>
+          <td class="score ${scoreClass(r.safetyScore ?? r.aggregatedScore)}">${r.safetyScore ?? r.aggregatedScore ?? "—"}</td>
+          <td>${r.indicatorsCount ?? "—"}</td>
+          <td class="muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(r.errorMessage || "")}">${escapeHtml((r.errorMessage || "—").slice(0, 50))}</td>
+          ${
+            showTiming
+              ? `
+          <td>${r.timing_totalMs != null ? r.timing_totalMs : "—"}</td>
+          <td>${r.timing_pythonMs != null ? r.timing_pythonMs : "—"}</td>
+          <td><div class="timing-details">${escapeHtml(formatTimingDetails(r.timing_scoringEngineDetails))}</div></td>
+          `
+              : ""
+          }
+        </tr>
+      `
+        )
+        .join("");
+
+    }
+
+    function escapeHtml(s) {
+      if (s == null) return "";
+      const div = document.createElement("div");
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    searchEl?.addEventListener("input", () => render());
+    filterStatusEl?.addEventListener("change", () => render());
+    showTimingEl?.addEventListener("change", () => render());
+  </script>
+</body>
+</html>

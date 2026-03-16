@@ -94,16 +94,17 @@ For each `/scan` request the server logs:
   - `scanTraceId` — the trace ID for this request
   - `timing` — breakdown of where time was spent:
     - `totalMs` — total request duration
-    - `normalizeMs` — URL normalization/validation
     - `pythonMs` — scoring engine process duration
+    - `normalizeMs` — URL normalization/validation
     - `parseMs` — parsing Python stdout JSON
     - `formatMs` — building the extension payload
+    - `scoringEngineDetails` — per-stage timing from the scoring engine stderr (when present): array of `{ stage, endpoint?, elapsedSeconds }` (e.g. `stage=data_fetch endpoint=cert`, `stage=total`)
 - **Errors:** A `[scan][error]` JSON line with `scanTraceId`, `errorType`, and any available timings (`totalMs`, `pythonMs`, etc.). The HTTP response body is unchanged.
 
 ### Example
 
 ```json
-{"scanTraceId":"scan-1710123456789-abc123","timing":{"totalMs":4523,"pythonMs":4400,"normalizeMs":0,"parseMs":2,"formatMs":1}, ...}
+{"scanTraceId":"scan-1710123456789-abc123","timing":{"totalMs":4523,"pythonMs":4400,"normalizeMs":0,"parseMs":2,"formatMs":1,"scoringEngineDetails":[{"stage":"data_fetch","endpoint":"cert","elapsedSeconds":0.18},{"stage":"data_fetch","endpoint":"dns","elapsedSeconds":0.19},{"stage":"total","elapsedSeconds":4.4}]}, ...}
 ```
 
 Use `scanTraceId` to match server logs with extension `[NetSTAR][timing]` logs and Python stderr `[scan][timing]` lines.

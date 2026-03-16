@@ -101,8 +101,9 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
     output = execute_curl_command(CURL_COMMAND)
     elapsed = time.time() - t0
     trace_id = getattr(app_config, 'SCAN_TRACE_ID', None) or ''
-    if app_config.VERBOSE and trace_id:
+    if trace_id:
         print(f"[scan][timing] traceId={trace_id} stage=data_fetch endpoint={endpoint} elapsedSeconds={elapsed:.3f}", file=sys.stderr)
+        sys.stderr.flush()
 
     if output is None:
         if app_config.VERBOSE:

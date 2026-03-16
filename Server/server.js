@@ -139,6 +139,30 @@ function generateFallbackTraceId() {
   return `scan-srv-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/**
+ * Parse scoring engine stderr for [scan][timing] lines and return structured entries
+ * for server telemetry. Lines look like:
+ *   [scan][timing] traceId=... stage=total elapsedSeconds=1.234
+ *   [scan][timing] traceId=... stage=data_fetch endpoint=cert elapsedSeconds=0.123
+ */
+function parseScoringEngineTiming(stderrText) {
+  if (!stderrText || typeof stderrText !== "string") return [];
+  const lines = stderrText.split(/\r?\n/);
+  const result = [];
+  const timingRe = /\[scan\]\[timing\].*?stage=(\S+).*?elapsedSeconds=([\d.]+)/;
+  const endpointRe = /endpoint=(\S+)/;
+  for (const line of lines) {
+    if (!line.includes("[scan][timing]")) continue;
+    const stageMatch = line.match(timingRe);
+    if (!stageMatch) continue;
+    const entry = { stage: stageMatch[1], elapsedSeconds: parseFloat(stageMatch[2], 10) };
+    const epMatch = line.match(endpointRe);
+    if (epMatch) entry.endpoint = epMatch[1];
+    result.push(entry);
+  }
+  return result;
+}
+
 function resolvePythonScript() {
   // Prefer the new Scoring Engine folder entrypoint(s).
   const scoringEngineMain = path.join(__dirname, "..", "Scoring Engine", "scoring_main.py");
@@ -274,12 +298,18 @@ app.get("/scan", (req, res) => {
         } catch {}
         const totalMs = Date.now() - tRequestStart;
         const pythonMs = tPythonStart != null ? Date.now() - tPythonStart : null;
+        const scoringEngineDetails = parseScoringEngineTiming(error);
+        const stderrPreview = error && error.length > 0
+          ? (error.length <= 2500 ? error : error.slice(0, 2500) + "\n... (stderr truncated)")
+          : undefined;
         console.log(
           `[${new Date().toISOString()}] [scan][error] ${JSON.stringify({
             scanTraceId,
             errorType: "timeout",
             totalMs,
             pythonMs,
+            scoringEngineDetails: scoringEngineDetails.length ? scoringEngineDetails : undefined,
+            stderrPreview,
           })}`
         );
         res.status(504).json({
@@ -299,7 +329,13 @@ app.get("/scan", (req, res) => {
         const totalMs = Date.now() - tRequestStart;
         const pythonMs = tPythonStart != null ? Date.now() - tPythonStart : null;
 
-        if (code !== 0 || /Traceback|Error/i.test(error)) {
+        // Only treat as failure on non-zero exit or actual Python traceback (not benign "Error" in scoring messages)
+        const hasTraceback = /Traceback/.test(error);
+        if (code !== 0 || hasTraceback) {
+          const scoringEngineDetails = parseScoringEngineTiming(error);
+          const stderrPreview = error && error.length > 0
+            ? (error.length <= 2500 ? error : error.slice(0, 2500) + "\n... (stderr truncated)")
+            : undefined;
           console.log(
             `[${new Date().toISOString()}] [scan][error] ${JSON.stringify({
               scanTraceId,
@@ -307,6 +343,8 @@ app.get("/scan", (req, res) => {
               totalMs,
               pythonMs,
               exitCode: code,
+              scoringEngineDetails: scoringEngineDetails.length ? scoringEngineDetails : undefined,
+              stderrPreview,
             })}`
           );
           return res.status(500).json({
@@ -328,6 +366,8 @@ app.get("/scan", (req, res) => {
           const response = formatForExtension(scores, aggregatedScore);
           const formatMs = Date.now() - tFormatStart;
 
+          const scoringEngineDetails = parseScoringEngineTiming(error);
+
           // Debug: log the exact score payload we're about to return
           try {
             const debugPayload = {
@@ -338,6 +378,7 @@ app.get("/scan", (req, res) => {
                 normalizeMs,
                 parseMs,
                 formatMs,
+                scoringEngineDetails: scoringEngineDetails.length ? scoringEngineDetails : undefined,
               },
               request: {
                 method: req.method,
@@ -374,6 +415,20 @@ app.get("/scan", (req, res) => {
             );
           } catch {
             // Avoid breaking /scan responses due to logging issues
+          }
+
+          // Optionally include timing in response body for batch/CLI clients (extension ignores extra keys)
+          const includeTiming =
+            req.query.includeTiming === "true" || req.get("X-Scan-Include-Timing") === "true";
+          if (includeTiming) {
+            response.timing = {
+              totalMs,
+              pythonMs,
+              normalizeMs,
+              parseMs,
+              formatMs,
+              scoringEngineDetails: scoringEngineDetails.length ? scoringEngineDetails : [],
+            };
           }
 
           return res.json(response);

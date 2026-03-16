@@ -30,11 +30,10 @@ WEIGHTS = {
 
 BASE_URL = 'https://w4.netstar.dev/'
 API_ENDPOINTS = [
-    'cert', 
-    'dns', 
-    'hval', 
-    'mail', 
-    'method', 
+    'cert',
+    'dns',
+    'hval',
+    'mail',
     'rdap',
     'firewall'
 ]
