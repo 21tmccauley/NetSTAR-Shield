@@ -112,19 +112,26 @@ if __name__ == '__main__':
     )
     # The -t/--target value is expected to be a pre-sanitized hostname
     # provided by the server (no scheme, no path, no "www." prefix).
-    # All normalization and validation happens in server.js before this
-    # script is invoked.  See Docs/url-sanitization-policy.md.
+    # All normalization and validation happens before this
+    # script is invoked.
     parser.add_argument(
         '-t', '--target',
         type=str,
         default=app_config.DEFAULT_URL,
         help=f"The target hostname to scan (e.g., {app_config.DEFAULT_URL})"
     )
+    # The -v/--verbose flag is for debugging and clarity when running the script manually.
+    # It will print out more information about the scoring process and what reasons the 
+    # different categories got docked points for.
     parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help="Enable verbose output for clarity."
     )    
+    #The --use-test-data flag allows us to run the scoring logic on the internal 
+    # test_scans data instead of making live API calls. This is useful for development 
+    # and testing purposes, especially when we want consistent results without relying 
+    # on external factors.
     parser.add_argument(
         '--use-test-data',
         action='store_true',
@@ -145,23 +152,23 @@ if __name__ == '__main__':
     # 2. Decide whether to use test data or fetch live data
     if args.use_test_data:
         if app_config.VERBOSE:
-            print(f"--- Running analysis on TEST DATA ---", file=sys.stderr)
+            print(f"--- Running analysis on TEST DATA ---")
         all_scans = test_scans
         # For reproducible results, we'll set a fixed date for the expiration checks.
         # Cert Sample Expiration: 2025-12-15.
         scan_date = datetime(2025, 10, 15)
     else:
         if app_config.VERBOSE:
-            print(f"--- Running analysis on LIVE DATA for {args.target} ---", file=sys.stderr)
+            print(f"--- Running analysis on LIVE DATA for {args.target} ---")
         # For live data, use the real date!
         scan_date = datetime.now()
-        # *** CHANGED TO THE CONCURRENT FETCH FUNCTION ***
+        # Pass the URL into the curl functions
         all_scans = fetch_scan_data_concurrent(args.target)
     
     # 3. Check if we have data, then calculate and print scores
     if not all_scans:
         if app_config.VERBOSE:
-            print("No scan data was retrieved. Exiting.", file=sys.stderr)
+            print("No scan data was retrieved. Exiting.")
         sys.exit(1)
 
     final_scores = calculate_security_score(all_scans, scan_date)
@@ -178,7 +185,7 @@ if __name__ == '__main__':
     print(json.dumps(output, indent=2))
 
     if app_config.VERBOSE:
-        print("-------------------------------------------", file=sys.stderr)
-        print(f"Total execution time: {elapsed_time:.2f} seconds", file=sys.stderr)
-        print("-------------------------------------------", file=sys.stderr)
+        print("-------------------------------------------")
+        print(f"Total execution time: {elapsed_time:.2f} seconds")
+        print("-------------------------------------------")
 
