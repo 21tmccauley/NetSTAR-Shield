@@ -14,7 +14,7 @@ def execute_curl_command(command: List[str]) -> Optional[str]: #KEEP
     Handles potential errors during execution.
     """
     if app_config.VERBOSE:
-        print(f"Executing command: {' '.join(command)}", file=sys.stderr)
+        print(f"Executing command: {' '.join(command)}")
     try:
         # Run the command, capture stdout, and decode as text
         result = subprocess.run(
@@ -28,8 +28,8 @@ def execute_curl_command(command: List[str]) -> Optional[str]: #KEEP
         if result.returncode != 0:
             # Report the error code and stderr if the command failed
             if app_config.VERBOSE:
-                print(f"Error executing command. Return code: {result.returncode}", file=sys.stderr)
-                print(f"Standard Error:\n{result.stderr.strip()}", file=sys.stderr)
+                print(f"Error executing command. Return code: {result.returncode}")
+                print(f"Standard Error:\n{result.stderr.strip()}")
             return None
 
         # The output is returned as a string (JSON)
@@ -37,15 +37,15 @@ def execute_curl_command(command: List[str]) -> Optional[str]: #KEEP
 
     except FileNotFoundError:
         if app_config.VERBOSE:
-            print("Error: The 'curl' command was not found. Make sure it is installed and in your system PATH.", file=sys.stderr)
+            print("Error: The 'curl' command was not found. Make sure it is installed and in your system PATH.")
         return None
     except subprocess.TimeoutExpired:
         if app_config.VERBOSE:
-            print("Error: Command execution timed out.", file=sys.stderr)
+            print("Error: Command execution timed out.")
         return None
     except Exception as e:
         if app_config.VERBOSE:
-            print(f"An unexpected error occurred during execution: {e}", file=sys.stderr)
+            print(f"An unexpected error occurred during execution: {e}")
         return None
 
 def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict | None]:
@@ -69,7 +69,7 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
 
     # 3. Define the cURL command (with exception for RDAP POST)
     if app_config.VERBOSE:
-        print(f"\n[Processing Endpoint: {endpoint.upper()}]", file=sys.stderr)
+        print(f"\n[Processing Endpoint: {endpoint.upper()}]")
     
     CURL_COMMAND = [] # Initialize command list
 
@@ -100,7 +100,7 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
     
     if output is None:
         if app_config.VERBOSE:
-            print(f"--> Endpoint {endpoint.upper()} failed execution. Skipping.", file=sys.stderr)
+            print(f"--> Endpoint {endpoint.upper()} failed execution. Skipping.")
         return (None, None)
 
     # 5. Parse the JSON output
@@ -110,11 +110,11 @@ def process_single_endpoint(host: str, endpoint: str) -> tuple[str | None, dict 
         return (scan_key, data)
     except json.JSONDecodeError:
         if app_config.VERBOSE:
-            print(f"--> Endpoint {endpoint.upper()} returned invalid JSON. Skipping.", file=sys.stderr)
+            print(f"--> Endpoint {endpoint.upper()} returned invalid JSON. Skipping.")
         return (None, None)
     except Exception as e:
         if app_config.VERBOSE:
-            print(f"--> An error occurred processing {endpoint.upper()}: {e}", file=sys.stderr)
+            print(f"--> An error occurred processing {endpoint.upper()}: {e}")
         return (None, None)
 
 def fetch_scan_data_concurrent(host: str) -> dict: 
@@ -124,7 +124,7 @@ def fetch_scan_data_concurrent(host: str) -> dict:
     """
     all_scans = {}
     if app_config.VERBOSE:
-        print(f"\n--- Fetching live data for {host} from NetStar API (via concurrent cURL) ---", file=sys.stderr)
+        print(f"\n--- Fetching live data for {host} from NetStar API (via concurrent cURL) ---")
     print(f"\"url\": \"{host}\"")
 
     # Use ThreadPoolExecutor to run tasks in parallel
@@ -145,5 +145,5 @@ def fetch_scan_data_concurrent(host: str) -> dict:
                 all_scans[scan_key] = data
                 
     if app_config.VERBOSE:
-        print("\n--- Data fetching complete ---", file=sys.stderr)
+        print("\n--- Data fetching complete ---")
     return all_scans

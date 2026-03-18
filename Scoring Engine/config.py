@@ -15,12 +15,12 @@ WEIGHTS = {
     'Certificate_Health': 15,
     'DNS_Record_Health': 14,
     'Domain_Reputation': 24,    
-    'WHOIS_Pattern': 10, #unused currently
-    'IP_Reputation': 2, #unused currently (probably won't be used)
+    'WHOIS_Pattern': 10, 
+    'IP_Reputation': 2, 
     'Credential_Safety': 17
 }
 
-
+# NetSTAR endpoints that are used to fetch information
 BASE_URL = 'https://w4.netstar.dev/'
 API_ENDPOINTS = [
     'cert', 
@@ -37,6 +37,7 @@ DEFAULT_URL = 'netstar.ai'
 # Verbose mode flag
 VERBOSE = False
 
+# List of TLDs from Spamhaus (includes .com and other very common TLDs)
 MAL_TLDS = [
     "ac", "ai", "app", "at", "autos", "biz", "bond", "br", "bz", "ca", "cc",
     "cfd", "claims", "click", "cn", "co", "com", "coupons", "courses",
@@ -50,6 +51,7 @@ MAL_TLDS = [
     "us", "vip", "wiki", "world", "ws" ,"xn--q9jyb4c" ,"xyz"
 ]
 
+# List of TLDs from Spamhaus ( Listed TLDs below removed)
 MAL_TLDS_SLIM = [ #removed co, com, eu, uk, org, net
     "ac", "ai", "app", "at", "autos", "biz", "bond", "br", "bz", "ca", "cc",
     "cfd", "claims", "click", "cn", "coupons", "courses",
@@ -63,6 +65,7 @@ MAL_TLDS_SLIM = [ #removed co, com, eu, uk, org, net
     "us", "vip", "wiki", "world", "ws", "xn--q9jyb4c", "xyz"
 ]
 
+# List of registrars from Spamhaus
 MAL_REGISTRARS = [
     "StanCo", "Istanco", "Hangzhou Yunji", "FlokiNET", "NauNet", "OPENPROV-RU", "DomainDelights", "Navicosoft Pty", "Shock Hosting",
     "nicenic.net", "DropCatch.com 1422",  "Dynu Systems Incorporated", "RegRU", "Hello Internet Corp", "PortlandNames.com", "Dynadot",
@@ -75,4 +78,13 @@ MAL_REGISTRARS = [
     "武汉物与伦比科技有限公司", "厦门纳网科技股份有限公司", "成都西维数码科技有限公司", "west263.com", "rocket"
 ]
 
-
+CLIENT_LOCKS = [
+        "client delete prohibited",
+        "client transfer prohibited",
+        "client update prohibited"
+    ]
+SERVER_LOCKS = [
+    "server delete prohibited",
+    "server transfer prohibited",
+    "server update prohibited"
+]
